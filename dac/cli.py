@@ -5,11 +5,15 @@ from pathlib import Path
 import typer
 
 from dac import __version__
+from dac import lab as lab_mod
+from dac.config import ENV_FILE, Settings
 
 app = typer.Typer(
     help="Detection-as-Code pipeline: Sigma -> CI tests -> Elastic.",
     no_args_is_help=True,
 )
+lab_app = typer.Typer(help="Manage the local Elastic lab.", no_args_is_help=True)
+app.add_typer(lab_app, name="lab")
 
 RULES_DIR = Path("rules")
 BUILD_DIR = Path("build")
@@ -63,6 +67,42 @@ def deploy(
 def version() -> None:
     """Show version."""
     typer.echo(__version__)
+
+
+@lab_app.command("init")
+def lab_init(force: bool = typer.Option(False, "--force", help="Overwrite lab/.env.")) -> None:
+    """Create lab/.env with random secrets."""
+    if lab_mod.init_env(force=force):
+        typer.secho(f"Created {ENV_FILE} with random secrets.", fg=typer.colors.GREEN)
+        typer.echo("Next: docker compose -f lab/docker-compose.yml up -d && dac lab setup")
+    else:
+        typer.echo(f"{ENV_FILE} already exists (use --force to regenerate).")
+
+
+@lab_app.command("setup")
+def lab_setup(
+    timeout: int = typer.Option(300, help="Seconds to wait for Elasticsearch/Kibana."),
+) -> None:
+    """Create pipeline role, user, API key and test index template (idempotent)."""
+    try:
+        lab_mod.setup(Settings.load(), log=typer.echo, timeout=timeout)
+    except lab_mod.LabError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+    typer.secho("Lab ready. Verify with: dac lab check", fg=typer.colors.GREEN)
+
+
+@lab_app.command("check")
+def lab_check() -> None:
+    """Verify the lab is reachable with the pipeline API key."""
+    results = lab_mod.check(Settings.load())
+    for name, ok, detail in results:
+        mark = typer.style(
+            "OK  " if ok else "FAIL", fg=typer.colors.GREEN if ok else typer.colors.RED
+        )
+        typer.echo(f"[{mark}] {name}: {detail}")
+    if not all(ok for _, ok, _ in results):
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":

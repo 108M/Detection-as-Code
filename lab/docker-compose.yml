@@ -1,0 +1,88 @@
+# Elastic lab for the Detection-as-Code pipeline.
+# Usage:
+#   dac lab init                                   # creates lab/.env with random secrets
+#   docker compose -f lab/docker-compose.yml up -d
+#   dac lab setup                                  # pipeline user, API key, index templates
+name: dac-lab
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    environment:
+      - node.name=dac-es01
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=true
+      # Lab only: HTTP without TLS, bound to localhost (see ports).
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - xpack.license.self_generated.type=basic
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      - ES_JAVA_OPTS=-Xms${ES_MEM} -Xmx${ES_MEM}
+    ports:
+      - "127.0.0.1:${ES_PORT}:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -s -u elastic:$${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health
+          | grep -qE '"status":"(green|yellow)"'
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  # One-shot container: sets the kibana_system password so Kibana can connect.
+  setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - KIBANA_PASSWORD=${KIBANA_PASSWORD}
+    command:
+      - bash
+      - -c
+      - >-
+        echo "Setting kibana_system password";
+        until curl -s -o /dev/null -w '%{http_code}' -X POST
+        -u "elastic:$${ELASTIC_PASSWORD}" -H 'Content-Type: application/json'
+        http://elasticsearch:9200/_security/user/kibana_system/_password
+        -d "{\"password\":\"$${KIBANA_PASSWORD}\"}" | grep -q 200; do sleep 5; done;
+        echo "Done"
+    restart: "no"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    environment:
+      - SERVERNAME=dac-kibana
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
+      # Required by alerting / detection engine (encrypted saved objects).
+      - XPACK_SECURITY_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY}
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY}
+      - XPACK_REPORTING_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY}
+      - TELEMETRY_OPTIN=false
+    ports:
+      - "127.0.0.1:${KIBANA_PORT}:5601"
+    volumes:
+      - kibanadata:/usr/share/kibana/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -s -o /dev/null -w '%{http_code}' http://localhost:5601/api/status
+          | grep -qE '200|401'
+      interval: 10s
+      timeout: 10s
+      retries: 60
+
+volumes:
+  esdata:
+  kibanadata:
