@@ -35,7 +35,14 @@ python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 dac --help
+
+# Lab Elastic (requiere Docker)
+dac lab init
+docker compose -f lab/docker-compose.yml up -d --wait
+dac lab setup && dac lab check
 ```
+
+Más detalles en [`lab/README.md`](lab/README.md).
 
 ## Licencia
 
