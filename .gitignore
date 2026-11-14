@@ -1,0 +1,24 @@
+# Notas privadas (no publicar)
+ideas-proyectos-portafolio.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Artefactos generados por el pipeline
+build/
+
+# Lab
+lab/.env
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+README.md
