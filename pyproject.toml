@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dac"
+version = "0.1.0"
+description = "Detection-as-Code: Sigma rules validated, tested against attack telemetry and deployed to Elastic"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.12",
+    "pyyaml>=6.0",
+    "pysigma>=0.11",
+    "pysigma-backend-elasticsearch>=1.1",
+    "pysigma-pipeline-sysmon>=1.0",
+    "pysigma-pipeline-windows>=1.2",
+    "elasticsearch>=8.13,<9",
+    "mitreattack-python>=3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+    "yamllint>=1.35",
+    "pre-commit>=3.7",
+    "sigma-cli>=1.0",
+]
+
+[project.scripts]
+dac = "dac.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["dac*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
