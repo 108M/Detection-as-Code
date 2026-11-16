@@ -3,5 +3,7 @@ detects:
   - dataset: otrf_psh_lsass_memory_dump_comsvcs
     min_hits: 1  # rundll32 calling the comsvcs export against the LSASS pid
   - dataset: dac_lsass_comsvcs_minidump
-    min_hits: 1  # rundll32 comsvcs.dll MiniDump <lsass pid> %TEMP%\lsass-comsvcs.dmp full (own capture, Atomic T1003.001-2)
+    min_hits: 1  # rundll32 comsvcs.dll MiniDump <lsass pid> %TEMP%\lsass-comsvcs.dmp full (own capture, Atomic T1003.001-2); blocked by LSA protection (RunAsPPL), the command line alone is enough
+  - dataset: dac_lsass_comsvcs_minidump_noppl
+    min_hits: 1  # same test with LSA protection off: the dump succeeds (own capture, Atomic T1003.001-2)
 max_false_positives: 0

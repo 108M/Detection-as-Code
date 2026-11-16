@@ -184,3 +184,9 @@ datasets:
     sha256: "0153912892a9df01b1b149409743ff0aefe84d79b340823a981fa3b3d8bbd6db"
     techniques: [T1685.005]
     description: "Own capture: Atomic Red Team T1685.005 test(s) 1"
+  - id: dac_lsass_comsvcs_minidump_noppl
+    path: captures/lsass_comsvcs_minidump_noppl.json.gz
+    format: windows-json
+    sha256: "add0d12223a29d2c98ec1360f82f978afe939c2f53d11aeed3cd1e41425b5033"
+    techniques: [T1003.001]
+    description: "Own capture: Atomic T1003.001-2 (comsvcs MiniDump of LSASS) with LSA protection off - dump succeeds"

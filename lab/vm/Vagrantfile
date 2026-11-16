@@ -50,6 +50,8 @@ Vagrant.configure("2") do |config|
     path: "provision/telemetry.ps1"
   config.vm.provision "defender", type: "shell", privileged: true,
     path: "provision/defender.ps1"
+  config.vm.provision "lsa", type: "shell", privileged: true, reboot: true,
+    path: "provision/lsa.ps1"
   config.vm.provision "sysmon", type: "shell", privileged: true,
     path: "provision/sysmon.ps1"
   config.vm.provision "atomic", type: "shell", privileged: true,

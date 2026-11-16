@@ -1,0 +1,13 @@
+{
+  "name": "lsass_comsvcs_minidump_noppl",
+  "technique": "T1003.001",
+  "tests": "2",
+  "events": 210,
+  "dropped_plumbing_events": 5528,
+  "start": "2026-11-16T14:13:57.0049914Z",
+  "end": "2026-11-16T14:14:21.3951607Z",
+  "host": "DAC-WIN11",
+  "os": "Microsoft Windows 11 Enterprise Evaluation",
+  "sysmon": "15.22",
+  "sha256": "add0d12223a29d2c98ec1360f82f978afe939c2f53d11aeed3cd1e41425b5033"
+}
