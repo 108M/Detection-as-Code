@@ -1,0 +1,11 @@
+# Suspicious LSASS Process Access (Sysmon 10)
+detects:
+  - dataset: otrf_empire_mimikatz_logonpasswords
+    min_hits: 1  # powershell.exe (Invoke-Mimikatz), access 0x1010
+  - dataset: otrf_cmd_lsass_memory_dumpert_syscalls
+    min_hits: 1  # Outflank Dumpert, access 0x1fffff
+  - dataset: otrf_rdp_interactive_taskmanager_lsass_dump
+    min_hits: 1  # taskmgr.exe "Create dump file", access 0x1fffff
+  - dataset: otrf_psh_lsass_memory_dump_comsvcs
+    min_hits: 1  # rundll32.exe (comsvcs), access 0x1fffff
+max_false_positives: 0

@@ -1,0 +1,5 @@
+# Scheduled Task Created With Suspicious Action
+detects:
+  - dataset: otrf_empire_schtasks_creation_standard_user
+    min_hits: 1  # schtasks /Create /F /SC DAILY /TN MordorSchtask /TR "powershell.exe -NonI ..."
+max_false_positives: 0

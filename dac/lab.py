@@ -42,11 +42,15 @@ TEST_TEMPLATE_BODY: dict[str, Any] = {
         "settings": {
             "number_of_shards": 1,
             "number_of_replicas": 0,
+            # Raw Windows events carry many distinct event_data fields per dataset.
+            "mapping.total_fields.limit": 5000,
             "analysis": {
                 "normalizer": {"dac_lowercase": {"type": "custom", "filter": ["lowercase"]}}
             },
         },
         "mappings": {
+            # Exporters use several date formats in event data: keep them as strings.
+            "date_detection": False,
             "dynamic_templates": [
                 {
                     "strings_as_keyword": {
