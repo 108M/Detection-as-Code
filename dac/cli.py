@@ -174,10 +174,39 @@ def datasets_fetch() -> None:
 
 @app.command()
 def coverage(
-    output: Path = typer.Option(BUILD_DIR, help="Output directory for reports."),
+    rules: Path = typer.Option(RULES_DIR, help="Directory with Sigma rules."),
+    cases: Path = typer.Option(Path("tests/cases"), help="Directory with test case manifests."),
+    report: Path = typer.Option(
+        BUILD_DIR / "test-report.json", help="`dac test` report (optional, adds test status)."
+    ),
+    output: Path = typer.Option(BUILD_DIR / "site", help="Output directory (static site)."),
+    site_url: str = typer.Option(
+        None, envvar="DAC_SITE_URL", help="Public URL of the site (Navigator layer link)."
+    ),
 ) -> None:
-    """Generate ATT&CK Navigator layer and coverage report."""
-    _not_implemented("coverage")
+    """Generate the ATT&CK Navigator layer and the coverage report."""
+    from dac import coverage as cov
+
+    if not report.exists():
+        typer.secho(f"{report} not found: coverage without test status", fg=typer.colors.YELLOW)
+    model = cov.build(rules, cases, report)
+    written = cov.write_site(model, output, site_url or cov.DEFAULT_SITE_URL, report)
+    s = model.summary
+    for t in model.tactics:
+        if t.covered:
+            typer.echo(
+                f"  {t.name:22} {t.covered:>2}/{t.total:<3} {', '.join(x.id for x in t.techniques)}"
+            )
+    if step_summary := os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(step_summary, "a", encoding="utf-8") as fh:
+            fh.write(cov.markdown(model, site_url))
+    typer.secho(
+        f"{s['techniques']} techniques ({s['techniques_tested']} tested) in "
+        f"{s['tactics_covered']}/{s['tactics_total']} tactics -> {len(written)} files in "
+        f"{output.as_posix()}",
+        fg=typer.colors.GREEN,
+        bold=True,
+    )
 
 
 @app.command()

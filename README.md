@@ -1,6 +1,13 @@
 # Detection-as-Code
 
+[![CI](https://github.com/108M/Detection-as-Code/actions/workflows/ci.yml/badge.svg)](https://github.com/108M/Detection-as-Code/actions/workflows/ci.yml)
+[![Rules](https://img.shields.io/endpoint?url=https%3A%2F%2F108m.github.io%2FDetection-as-Code%2Fbadges%2Frules.json)](https://108m.github.io/Detection-as-Code/)
+[![Detection rate](https://img.shields.io/endpoint?url=https%3A%2F%2F108m.github.io%2FDetection-as-Code%2Fbadges%2Fdetection-rate.json)](https://108m.github.io/Detection-as-Code/)
+[![ATT&CK](https://img.shields.io/endpoint?url=https%3A%2F%2F108m.github.io%2FDetection-as-Code%2Fbadges%2Fattack.json)](https://108m.github.io/Detection-as-Code/)
+
 Pipeline de ingeniería de detección: reglas **Sigma** versionadas en git, validadas y **probadas en CI contra telemetría de ataque real**, convertidas y desplegadas en **Elastic Security**, con informe de cobertura **MITRE ATT&CK** y tasa de falsos positivos.
+
+**📊 Informe de cobertura (se regenera en cada merge):** <https://108m.github.io/Detection-as-Code/>
 
 > 🚧 En construcción.
 
@@ -46,7 +53,7 @@ dac datasets fetch
 dac test
 ```
 
-Más detalles en [`lab/README.md`](lab/README.md). Convenciones de reglas: [`docs/rule-conventions.md`](docs/rule-conventions.md). Conversión a Elastic: [`docs/conversion.md`](docs/conversion.md). Tests contra telemetría: [`docs/testing.md`](docs/testing.md).
+Más detalles en [`lab/README.md`](lab/README.md). Convenciones de reglas: [`docs/rule-conventions.md`](docs/rule-conventions.md). Conversión a Elastic: [`docs/conversion.md`](docs/conversion.md). Tests contra telemetría: [`docs/testing.md`](docs/testing.md). Cobertura: [`docs/coverage.md`](docs/coverage.md).
 
 ## Licencia
 
