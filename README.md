@@ -51,9 +51,13 @@ dac lab setup && dac lab check
 # Tests contra telemetría de ataque real
 dac datasets fetch
 dac test
+
+# Despliegue en Kibana y prueba con alertas reales
+dac deploy --dry-run && dac deploy
+dac lab replay otrf_psh_lsass_memory_dump_comsvcs
 ```
 
-Más detalles en [`lab/README.md`](lab/README.md). Convenciones de reglas: [`docs/rule-conventions.md`](docs/rule-conventions.md). Conversión a Elastic: [`docs/conversion.md`](docs/conversion.md). Tests contra telemetría: [`docs/testing.md`](docs/testing.md). Cobertura: [`docs/coverage.md`](docs/coverage.md).
+Más detalles en [`lab/README.md`](lab/README.md). Convenciones de reglas: [`docs/rule-conventions.md`](docs/rule-conventions.md). Conversión a Elastic: [`docs/conversion.md`](docs/conversion.md). Tests contra telemetría: [`docs/testing.md`](docs/testing.md). Cobertura: [`docs/coverage.md`](docs/coverage.md). Despliegue: [`docs/deployment.md`](docs/deployment.md).
 
 ## Licencia
 

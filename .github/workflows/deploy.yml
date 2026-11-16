@@ -1,0 +1,46 @@
+name: Deploy rules
+
+# Manual deployment to the Elastic lab. The lab runs on a local machine, so this
+# workflow targets a self-hosted runner on that machine (see docs/deployment.md).
+# Without such a runner the job simply stays queued; CI does not depend on it.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only show the plan (no changes in Kibana)
+        type: boolean
+        default: true
+      prune:
+        description: Delete rules removed from the repo (default disables them)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Kibana
+    runs-on: [self-hosted, dac-lab]
+    environment: lab
+    env:
+      DAC_KIBANA_URL: ${{ secrets.DAC_KIBANA_URL }}
+      DAC_ES_URL: ${{ secrets.DAC_ES_URL }}
+      DAC_API_KEY: ${{ secrets.DAC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -e .
+      - name: dac validate
+        run: dac validate
+      - name: dac deploy
+        run: >-
+          dac deploy
+          ${{ inputs.dry_run && '--dry-run' || '' }}
+          ${{ inputs.prune && '--prune' || '' }}
