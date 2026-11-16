@@ -11,7 +11,8 @@ from pathlib import Path
 import yaml
 from sigma.collection import SigmaCollection
 from sigma.exceptions import SigmaError, SigmaRuleLocation
-from sigma.rule import SigmaRule
+from sigma.rule import SigmaDetection, SigmaDetectionItem, SigmaRule
+from sigma.types import SigmaRegularExpression
 from sigma.validation import SigmaValidator
 from sigma.validators.base import SigmaValidationIssueSeverity
 from sigma.validators.core import validators as core_validators
@@ -198,6 +199,37 @@ def _attack_issues(path: Path, tags: list[str], data: attack.AttackData) -> list
     return issues
 
 
+def _iter_detection_items(detection: SigmaDetection | SigmaDetectionItem):
+    if isinstance(detection, SigmaDetectionItem):
+        yield detection
+        return
+    for item in detection.detection_items:
+        yield from _iter_detection_items(item)
+
+
+def _backend_issues(path: Path, rule: SigmaRule) -> list[Issue]:
+    """Constructs that are valid Sigma but do not work on the Elastic target."""
+    issues: list[Issue] = []
+    for name, detection in rule.detection.detections.items():
+        for item in _iter_detection_items(detection):
+            for value in item.value:
+                if not isinstance(value, SigmaRegularExpression):
+                    continue
+                rx = str(value.regexp)
+                if rx.startswith("^") or rx.endswith("$") or rx.startswith("(?"):
+                    issues.append(
+                        Issue(
+                            path,
+                            Severity.ERROR,
+                            "es-regex",
+                            f"{name}.{item.field}: regex '{rx}' uses anchors or inline flags; "
+                            "Elasticsearch regex is implicitly anchored and has no (?i). "
+                            "Remove them and use the |re|i modifier.",
+                        )
+                    )
+    return issues
+
+
 def _test_case_issues(path: Path, cases_dir: Path) -> list[Issue]:
     if (cases_dir / path.name).exists():
         return []
@@ -222,7 +254,9 @@ def validate(
         return [Issue(rules_dir, Severity.ERROR, "no-rules", "no .yml rules found")], 0
 
     data = attack_data or attack.load()
-    issues, _ = _sigma_issues(paths)
+    issues, parsed = _sigma_issues(paths)
+    for path, rule in parsed.items():
+        issues += _backend_issues(path, rule)
 
     for path in paths:
         try:

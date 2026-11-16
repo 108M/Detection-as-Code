@@ -1,0 +1,1 @@
+any where (event.category:"process" and event.type:"start") and ((process.executable.caseless:"*\\rundll32.exe" or process.pe.original_file_name:"RUNDLL32.EXE") and process.command_line:"*comsvcs*" and (process.command_line like~ ("*MiniDump*", "*#24*", "*#+24*")))

@@ -26,8 +26,9 @@ detection:
     - ServiceName: 'PSEXESVC'
     - ImagePath|endswith: '\PSEXESVC.exe'
   selection_impacket:
-    # Impacket psexec.py uploads a random 8-letter binary to %systemroot%
-    ImagePath|re: '(?i)^%systemroot%\\[a-z]{8}\.exe$'
+    # Impacket psexec.py uploads a random 8-letter binary to %systemroot%.
+    # No anchors / inline flags: Elasticsearch regex is implicitly anchored.
+    ImagePath|re|i: '%systemroot%\\[a-z]{8}\.exe'
   condition: selection_eid and (selection_psexec or selection_impacket)
 falsepositives:
   - Legitimate administrative use of Sysinternals PsExec

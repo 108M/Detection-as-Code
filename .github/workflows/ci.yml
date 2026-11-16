@@ -47,8 +47,16 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .cache/attack
-          key: attack-${{ env.DAC_ATTACK_VERSION }}
+          key: attack-${{ env.DAC_ATTACK_VERSION }}-${{ hashFiles('dac/attack.py') }}
       - name: dac validate
         run: dac validate
       - name: Unit tests
         run: pytest -q
+      - name: dac convert
+        run: dac convert --show
+      - name: Upload Elastic rules
+        uses: actions/upload-artifact@v4
+        with:
+          name: elastic-rules
+          path: build/rules.ndjson
+          if-no-files-found: error

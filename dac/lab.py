@@ -32,8 +32,9 @@ PIPELINE_INDICES = [
     ".internal.preview.alerts-security*",
 ]
 
-# Sigma matching is case-insensitive: keyword fields in test indices are
-# lowercased so converted queries behave the same way in the lab.
+# Same layout as Elastic's Windows integration: strings are raw keywords (EQL `:`
+# and `like~` already compare case-insensitively) plus a lowercased `.caseless`
+# sub-field, which the ecs_windows Sigma pipeline uses for paths.
 TEST_TEMPLATE_BODY: dict[str, Any] = {
     "index_patterns": [TEST_INDEX_PATTERN],
     "priority": 200,
@@ -52,8 +53,14 @@ TEST_TEMPLATE_BODY: dict[str, Any] = {
                         "match_mapping_type": "string",
                         "mapping": {
                             "type": "keyword",
-                            "normalizer": "dac_lowercase",
                             "ignore_above": 8191,
+                            "fields": {
+                                "caseless": {
+                                    "type": "keyword",
+                                    "normalizer": "dac_lowercase",
+                                    "ignore_above": 8191,
+                                }
+                            },
                         },
                     }
                 }

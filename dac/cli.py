@@ -61,9 +61,32 @@ def validate(
 def convert(
     rules: Path = typer.Option(RULES_DIR, help="Directory with Sigma rules."),
     output: Path = typer.Option(BUILD_DIR / "rules.ndjson", help="Output ndjson file."),
+    index: list[str] = typer.Option(
+        None, "--index", help="Override target indices (repeatable), e.g. dac-test-*."
+    ),
+    show: bool = typer.Option(False, "--show", help="Print each generated EQL query."),
 ) -> None:
     """Convert Sigma rules into Elastic detection rules (ndjson)."""
-    _not_implemented("convert")
+    from dac.convert import convert as run_convert
+    from dac.convert import write_ndjson
+    from dac.validate import discover
+
+    result = run_convert(discover(rules), index_override=index or None)
+    for path, message in result.errors:
+        typer.secho(f"{path.as_posix()}: error: {message}", fg=typer.colors.RED, err=True)
+    for r in result.rules:
+        typer.echo(f"  {r.rule_id}  {r.title}")
+        if show:
+            typer.secho(f"    {r.query}", fg=typer.colors.CYAN)
+    write_ndjson(result.rules, output)
+    color = typer.colors.RED if result.errors else typer.colors.GREEN
+    typer.secho(
+        f"{len(result.rules)} rules written to {output.as_posix()}, {len(result.errors)} errors",
+        fg=color,
+        bold=True,
+    )
+    if result.errors:
+        raise typer.Exit(code=1)
 
 
 @app.command()
