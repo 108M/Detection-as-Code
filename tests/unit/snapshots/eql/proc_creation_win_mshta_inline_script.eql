@@ -1,0 +1,1 @@
+any where (event.category:"process" and event.type:"start") and ((process.executable.caseless:"*\\mshta.exe" or process.pe.original_file_name:"MSHTA.EXE") and (process.command_line like~ ("*vbscript:*", "*javascript:*", "*about:*")))

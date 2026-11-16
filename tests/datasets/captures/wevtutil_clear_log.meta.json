@@ -1,0 +1,13 @@
+{
+  "name": "wevtutil_clear_log",
+  "technique": "T1685.005",
+  "tests": "1",
+  "events": 21,
+  "dropped_plumbing_events": 4315,
+  "start": "2026-11-16T13:30:20.6131735Z",
+  "end": "2026-11-16T13:30:43.6417705Z",
+  "host": "DAC-WIN11",
+  "os": "Microsoft Windows 11 Enterprise Evaluation",
+  "sysmon": "15.22",
+  "sha256": "0153912892a9df01b1b149409743ff0aefe84d79b340823a981fa3b3d8bbd6db"
+}

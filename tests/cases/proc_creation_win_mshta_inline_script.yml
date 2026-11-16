@@ -1,0 +1,7 @@
+# Mshta Executing Inline Script Protocol
+detects:
+  - dataset: dac_mshta_vbscript_exec
+    min_hits: 1  # cmd /c mshta vbscript:Execute("CreateObject(""Wscript.Shell"").Run ""powershell ...""") (own capture, Atomic T1218.005-2)
+  - dataset: dac_mshta_javascript_getobject
+    min_hits: 1  # mshta javascript:a=(GetObject('script:https://.../mshta.sct')).Exec() (own capture, Atomic T1218.005-1)
+max_false_positives: 0

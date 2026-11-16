@@ -6,4 +6,6 @@ detects:
     min_hits: 2  # Sysmon 1: "wevtutil cl System" and a multi-line Clear-EventLog loop
 # Implicit negative: otrf_cmd_wevtutil_modify_security_eventlog_path runs
 # "wevtutil sl" (changes the log path) and must not match a "clear" rule.
+  - dataset: dac_wevtutil_clear_log
+    min_hits: 1  # wevtutil cl System (own capture, Atomic T1685.005-1)
 max_false_positives: 0

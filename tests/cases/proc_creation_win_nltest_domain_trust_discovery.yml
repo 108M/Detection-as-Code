@@ -2,4 +2,6 @@
 detects:
   - dataset: splunk_t1482_art_sysmon
     min_hits: 2  # nltest /domain_trusts (cmd) and /domain_trusts /all_trusts (powershell)
+  - dataset: dac_nltest_domain_trusts
+    min_hits: 1  # nltest /domain_trusts on a workgroup host: fails, but the process still runs (own capture, Atomic T1482-2)
 max_false_positives: 0

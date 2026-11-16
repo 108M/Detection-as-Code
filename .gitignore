@@ -25,3 +25,6 @@ README.md
 
 # Caches (ATT&CK STIX index, etc.)
 .cache/
+
+# Vagrant state of the lab VM
+lab/vm/.vagrant/
