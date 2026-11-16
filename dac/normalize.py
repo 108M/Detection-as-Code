@@ -50,6 +50,7 @@ META_FIELDS = {
     "EventType",
     "SourceModuleName",
     "SourceModuleType",
+    "RecordId",
     "Category",
     "OpcodeValue",
     "AccountType",

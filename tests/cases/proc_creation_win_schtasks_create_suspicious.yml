@@ -2,4 +2,6 @@
 detects:
   - dataset: otrf_empire_schtasks_creation_standard_user
     min_hits: 1  # schtasks /Create /F /SC DAILY /TN MordorSchtask /TR "powershell.exe -NonI ..."
+  - dataset: dac_schtasks_onlogon_cmd
+    min_hits: 1  # schtasks /create /sc onlogon|onstart /tr "cmd.exe /c calc.exe" (own capture, Atomic T1053.005-1)
 max_false_positives: 0

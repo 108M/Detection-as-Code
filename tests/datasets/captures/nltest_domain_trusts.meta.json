@@ -1,0 +1,13 @@
+{
+  "name": "nltest_domain_trusts",
+  "technique": "T1482",
+  "tests": "2",
+  "events": 25,
+  "dropped_plumbing_events": 4201,
+  "start": "2026-11-16T13:27:44.0289711Z",
+  "end": "2026-11-16T13:28:06.7268176Z",
+  "host": "DAC-WIN11",
+  "os": "Microsoft Windows 11 Enterprise Evaluation",
+  "sysmon": "15.22",
+  "sha256": "96f7722017068a7609de71bebe7d0b89387d6001f7ed15b7db8896505939833e"
+}

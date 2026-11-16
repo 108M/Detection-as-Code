@@ -128,3 +128,59 @@ datasets:
     sha256: 097f16e7d92b0c75797244543e88a9eeaad80b861a31b053feddeb68fcd1772e
     techniques: [T1569.002]
     description: Atomic Red Team T1569.002 (sc create ARTService running cmd/powershell) + 20 legitimate service installs - System log
+
+  # --- Own captures (lab/vm, scripts/capture_atomic.ps1) ---
+  - id: dac_mshta_vbscript_exec
+    path: captures/mshta_vbscript_exec.json.gz
+    format: windows-json
+    sha256: "d5e5c1be7d11a1728aa2a70e37006050eba51b6dc0ceb1fdbe432ecd409b7a33"
+    techniques: [T1218.005]
+    description: "Own capture: Atomic Red Team T1218.005 test(s) 2"
+  - id: dac_mshta_javascript_getobject
+    path: captures/mshta_javascript_getobject.json.gz
+    format: windows-json
+    sha256: "49097456d724f7f41cbba63b0d7c6d2e516ad06824100d0b78d5d82bcd07c9f0"
+    techniques: [T1218.005]
+    description: "Own capture: Atomic Red Team T1218.005 test(s) 1"
+  - id: dac_powershell_encoded_command
+    path: captures/powershell_encoded_command.json.gz
+    format: windows-json
+    sha256: "88fbc6c15f402c4bdcc8da7b3efcc5582880af872bb084ec71392089a94a174f"
+    techniques: [T1059.001]
+    description: "Own capture: Atomic Red Team T1059.001 test(s) 17"
+  - id: dac_schtasks_onlogon_cmd
+    path: captures/schtasks_onlogon_cmd.json.gz
+    format: windows-json
+    sha256: "e7abd9db4239f0ac3a1ab61cc414cbf0719b6d6ac7c1148f2fda1091ba19a136"
+    techniques: [T1053.005]
+    description: "Own capture: Atomic Red Team T1053.005 test(s) 1"
+  - id: dac_runonce_powershell
+    path: captures/runonce_powershell.json.gz
+    format: windows-json
+    sha256: "60b1b3236495e97a356213be3c12cbb8e17e9a5a7afa3d0740c8f26f80da51bd"
+    techniques: [T1547.001]
+    description: "Own capture: Atomic Red Team T1547.001 test(s) 3"
+  - id: dac_nltest_domain_trusts
+    path: captures/nltest_domain_trusts.json.gz
+    format: windows-json
+    sha256: "96f7722017068a7609de71bebe7d0b89387d6001f7ed15b7db8896505939833e"
+    techniques: [T1482]
+    description: "Own capture: Atomic Red Team T1482 test(s) 2"
+  - id: dac_lsass_comsvcs_minidump
+    path: captures/lsass_comsvcs_minidump.json.gz
+    format: windows-json
+    sha256: "59733d31e9a59adcb8f65fa5df8e8809f2c3508b3cf67dd670d12ecc9d0f2050"
+    techniques: [T1003.001]
+    description: "Own capture: Atomic Red Team T1003.001 test(s) 2"
+  - id: dac_benign_admin_session
+    path: captures/benign_admin_session.json.gz
+    format: windows-json
+    sha256: "6226667299715e4fbf9eb84ec2953b81e84fcad2f3145454a1a6849ce4539460"
+    techniques: []
+    description: "Own capture: benign admin session (process/service/task/registry/network inventory)"
+  - id: dac_wevtutil_clear_log
+    path: captures/wevtutil_clear_log.json.gz
+    format: windows-json
+    sha256: "0153912892a9df01b1b149409743ff0aefe84d79b340823a981fa3b3d8bbd6db"
+    techniques: [T1685.005]
+    description: "Own capture: Atomic Red Team T1685.005 test(s) 1"

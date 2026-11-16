@@ -32,8 +32,8 @@ flowchart LR
 | `tests/datasets/` | Manifiesto de datasets (`sources.yml`): fuentes fijadas a un commit + sha256 |
 | `dac/` | CLI del pipeline: `validate`, `convert`, `test`, `coverage`, `deploy` |
 | `pipelines/` | Pipelines pySigma propios (mapeo de campos) |
-| `lab/` | Elasticsearch + Kibana en Docker |
-| `scripts/` | Normalizadores de datasets y captura con Atomic Red Team |
+| `lab/` | Elasticsearch + Kibana en Docker; `lab/vm/`: VM Windows 11 de ataque (Vagrant) |
+| `scripts/` | Captura de telemetría con Atomic Red Team (`capture_atomic.ps1`) |
 
 ## Inicio rápido
 
@@ -57,7 +57,7 @@ dac deploy --dry-run && dac deploy
 dac lab replay otrf_psh_lsass_memory_dump_comsvcs
 ```
 
-Más detalles en [`lab/README.md`](lab/README.md). Convenciones de reglas: [`docs/rule-conventions.md`](docs/rule-conventions.md). Conversión a Elastic: [`docs/conversion.md`](docs/conversion.md). Tests contra telemetría: [`docs/testing.md`](docs/testing.md). Cobertura: [`docs/coverage.md`](docs/coverage.md). Despliegue: [`docs/deployment.md`](docs/deployment.md).
+Más detalles en [`lab/README.md`](lab/README.md). Convenciones de reglas: [`docs/rule-conventions.md`](docs/rule-conventions.md). Conversión a Elastic: [`docs/conversion.md`](docs/conversion.md). Tests contra telemetría: [`docs/testing.md`](docs/testing.md). Cobertura: [`docs/coverage.md`](docs/coverage.md). Despliegue: [`docs/deployment.md`](docs/deployment.md). Lab de ataque (Atomic Red Team): [`docs/atomic-lab.md`](docs/atomic-lab.md).
 
 ## Licencia
 

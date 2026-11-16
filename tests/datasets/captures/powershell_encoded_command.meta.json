@@ -1,0 +1,13 @@
+{
+  "name": "powershell_encoded_command",
+  "technique": "T1059.001",
+  "tests": "17",
+  "events": 209,
+  "dropped_plumbing_events": 10382,
+  "start": "2026-11-16T13:24:57.5445794Z",
+  "end": "2026-11-16T13:25:21.7050606Z",
+  "host": "DAC-WIN11",
+  "os": "Microsoft Windows 11 Enterprise Evaluation",
+  "sysmon": "15.22",
+  "sha256": "88fbc6c15f402c4bdcc8da7b3efcc5582880af872bb084ec71392089a94a174f"
+}

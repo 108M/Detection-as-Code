@@ -341,6 +341,41 @@ def lab_replay(
     typer.echo("Alerts appear in Kibana > Security > Alerts after the next rule run (<= 5 min).")
 
 
+@lab_app.command("capture")
+def lab_capture(
+    technique: str = typer.Argument(
+        ..., help="ATT&CK technique of the Atomic test, e.g. T1218.005."
+    ),
+    name: str = typer.Option(..., "--name", "-n", help="Capture name (snake_case)."),
+    tests: str = typer.Option("", "--tests", "-t", help="Atomic test numbers, e.g. 1,2."),
+    description: str = typer.Option("", "--description", "-d", help="Dataset description."),
+    benign: str = typer.Option(
+        None, "--benign", help="Capture this PowerShell command instead of an Atomic test."
+    ),
+) -> None:
+    """Run an Atomic Red Team test in the lab VM and register the capture as a dataset."""
+    from dac import capture as cap
+
+    try:
+        result = cap.run_capture(technique, tests, name, benign_command=benign, log=typer.echo)
+    except cap.CaptureError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+    desc = description or (
+        f"Own capture: {benign}"
+        if benign
+        else f"Own capture: Atomic Red Team {technique} test(s) {tests or 'all'}"
+    )
+    ds_id = cap.register(result, desc)
+    typer.secho(
+        f"{result['events']} events -> tests/datasets/captures/{name}.json.gz "
+        f"(registered as {ds_id})",
+        fg=typer.colors.GREEN,
+        bold=True,
+    )
+    typer.echo("Next: label it in tests/cases/<rule>.yml and run `dac test`.")
+
+
 @lab_app.command("check")
 def lab_check() -> None:
     """Verify the lab is reachable with the pipeline API key."""

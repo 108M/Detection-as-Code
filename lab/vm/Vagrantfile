@@ -1,0 +1,57 @@
+# Windows 11 attack-simulation VM for capturing our own telemetry (Phase 7).
+#
+#   cd lab/vm
+#   vagrant up --provider hyperv       # Windows with WSL2/Docker (shared hypervisor)
+#   vagrant up --provider virtualbox   # only if the Windows hypervisor is OFF (see docs)
+#   (once) switch off Tamper Protection in the VM, then: vagrant provision --provision-with defender
+#   dac lab capture T1218.005 -t 2 -n mshta_vbscript_exec
+#   vagrant halt | vagrant destroy -f
+#
+# No shared folders: `dac lab capture` uploads the capture script over WinRM and pulls
+# the resulting capture back (sha256-verified). The VM is a disposable lab machine.
+
+BOX         = "gusztavvargadr/windows-11"
+BOX_VERSION = "2607.1.0"
+CPUS        = 4
+MEMORY_MB   = 6144
+
+Vagrant.configure("2") do |config|
+  config.vm.box          = BOX
+  config.vm.box_version  = BOX_VERSION
+  config.vm.hostname     = "dac-win11"
+  config.vm.communicator = "winrm"
+  config.vm.boot_timeout = 1200
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  # Hyper-V: coexists with WSL2 / Docker Desktop and runs at native speed.
+  config.vm.provider "hyperv" do |hv, override|
+    hv.vmname                = "dac-win11"
+    hv.cpus                  = CPUS
+    hv.memory                = MEMORY_MB
+    hv.maxmemory             = MEMORY_MB
+    hv.linked_clone          = true
+    hv.enable_virtualization_extensions = false
+    hv.vm_integration_services = { guest_service_interface: true }
+    override.vm.network "public_network", bridge: "Default Switch"
+  end
+
+  # VirtualBox: only usable when the Windows hypervisor is disabled. With WSL2 /
+  # Docker active it falls back to NEM mode and Windows 11 hangs on first reboot.
+  config.vm.provider "virtualbox" do |vb|
+    vb.name   = "dac-win11"
+    vb.gui    = ENV.fetch("DAC_VM_GUI", "false") == "true"
+    vb.cpus   = CPUS
+    vb.memory = MEMORY_MB
+    vb.customize ["modifyvm", :id, "--clipboard-mode", "disabled"]
+    vb.customize ["modifyvm", :id, "--draganddrop", "disabled"]
+  end
+
+  config.vm.provision "telemetry", type: "shell", privileged: true,
+    path: "provision/telemetry.ps1"
+  config.vm.provision "defender", type: "shell", privileged: true,
+    path: "provision/defender.ps1"
+  config.vm.provision "sysmon", type: "shell", privileged: true,
+    path: "provision/sysmon.ps1"
+  config.vm.provision "atomic", type: "shell", privileged: true,
+    path: "provision/atomic.ps1"
+end

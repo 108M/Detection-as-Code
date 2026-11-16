@@ -2,6 +2,8 @@
 detects:
   - dataset: otrf_empire_launcher_vbs
     min_hits: 1  # VBS launcher -> powershell -noP -sta -w 1 -enc <stager>
+  - dataset: dac_powershell_encoded_command
+    min_hits: 1  # cmd /c powershell.exe -e JgAgACgAZwBjAG0A... (own capture, Atomic T1059.001-17)
 also_detects:
   - dataset: otrf_empire_psexec_dcerpc_tcp_svcctl
     reason: Empire psexec service runs the same encoded PowerShell stager

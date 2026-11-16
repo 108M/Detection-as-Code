@@ -1,0 +1,13 @@
+{
+  "name": "benign_admin_session",
+  "technique": "benign",
+  "tests": "",
+  "events": 34,
+  "dropped_plumbing_events": 3301,
+  "start": "2026-11-16T13:29:28.2695136Z",
+  "end": "2026-11-16T13:29:53.0308936Z",
+  "host": "DAC-WIN11",
+  "os": "Microsoft Windows 11 Enterprise Evaluation",
+  "sysmon": "15.22",
+  "sha256": "6226667299715e4fbf9eb84ec2953b81e84fcad2f3145454a1a6849ce4539460"
+}

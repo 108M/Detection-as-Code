@@ -20,7 +20,7 @@ import yaml
 from dac.normalize import NORMALIZER_VERSION, iter_kv_events, normalize, parse_xml_event
 
 SOURCES_FILE = Path("tests/datasets/sources.yml")
-LOCAL_DIR = Path("tests/datasets")  # own captures (Phase 7) live here, already ECS
+LOCAL_DIR = Path("tests/datasets")  # own captures (Phase 7): tests/datasets/captures/
 CACHE_DIR = Path(os.environ.get("DAC_CACHE_DIR", ".cache")) / "datasets"
 
 
@@ -40,6 +40,8 @@ class Dataset:
 
     @property
     def raw_path(self) -> Path:
+        if self.local_path:
+            return self.local_path
         suffix = "".join(Path(self.url or "x.bin").suffixes[-2:]) or ".bin"
         return CACHE_DIR / "raw" / f"{self.id}{suffix}"
 
@@ -47,6 +49,11 @@ class Dataset:
         """Identifies the normalised content: changes if the data or normaliser changes."""
         source = self.sha256 or (_sha256(self.local_path) if self.local_path else "unknown")
         return f"{source}:{self.format}:{NORMALIZER_VERSION}"
+
+
+def _hash_value(value: Any) -> str | None:
+    """YAML reads an all-digit hash as a number: always compare hashes as text."""
+    return None if value is None else str(value)
 
 
 def load_manifest(path: Path = SOURCES_FILE) -> list[Dataset]:
@@ -66,7 +73,7 @@ def load_manifest(path: Path = SOURCES_FILE) -> list[Dataset]:
                     id=ds_id,
                     format=entry.get("format", src["format"]),
                     url=f"{src['base_url'].rstrip('/')}/{entry['path']}",
-                    sha256=entry.get("sha256"),
+                    sha256=_hash_value(entry.get("sha256")),
                     techniques=entry.get("techniques", []),
                     description=entry.get("description", ""),
                 )
@@ -75,8 +82,9 @@ def load_manifest(path: Path = SOURCES_FILE) -> list[Dataset]:
             out.append(
                 Dataset(
                     id=ds_id,
-                    format="ecs-ndjson",
+                    format=entry.get("format", "windows-json"),
                     local_path=LOCAL_DIR / entry["path"],
+                    sha256=_hash_value(entry.get("sha256")),
                     techniques=entry.get("techniques", []),
                     description=entry.get("description", ""),
                 )
@@ -97,7 +105,10 @@ def fetch(ds: Dataset, log: Callable[[str], None] = print) -> str:
     if ds.local_path:
         if not ds.local_path.exists():
             raise DatasetError(f"{ds.id}: local file {ds.local_path} not found")
-        return _sha256(ds.local_path)
+        digest = _sha256(ds.local_path)
+        if ds.sha256 and digest != ds.sha256:
+            raise DatasetError(f"{ds.id}: sha256 mismatch (expected {ds.sha256}, got {digest})")
+        return digest
     if not ds.raw_path.exists():
         ds.raw_path.parent.mkdir(parents=True, exist_ok=True)
         log(f"  downloading {ds.id}")
@@ -138,6 +149,13 @@ def _iter_raw(ds: Dataset) -> Iterator[dict[str, Any]]:
             for line in io.TextIOWrapper(io.BytesIO(blob), encoding="utf-8-sig", errors="replace"):
                 if line.strip():
                     yield json.loads(line)
+    elif ds.format == "windows-json":
+        # Own captures (scripts/capture_atomic.ps1): flat JSON lines, optionally gzipped.
+        opener = gzip.open if path.suffix == ".gz" else open
+        with opener(path, "rt", encoding="utf-8-sig", errors="replace") as fh:
+            for line in fh:
+                if line.strip():
+                    yield json.loads(line)
     elif ds.format == "windows-xml":
         # One <Event> per record, but a record may span several lines (multi-line
         # command lines), so split on the closing tag rather than on newlines.
@@ -165,8 +183,8 @@ def iter_events(ds: Dataset, log: Callable[[str], None] = print) -> Iterator[dic
     AV (Defender: Trojan:PowerShell/Boxter). Only the original archives are cached.
     """
     fetch(ds, log)
-    if ds.local_path:
-        yield from _iter_ndjson(ds.local_path)
+    if ds.format == "ecs-ndjson":
+        yield from _iter_ndjson(ds.raw_path)
         return
     for raw in _iter_raw(ds):
         yield normalize(raw, ds.id)

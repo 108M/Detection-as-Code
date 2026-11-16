@@ -1,0 +1,13 @@
+{
+  "name": "schtasks_onlogon_cmd",
+  "technique": "T1053.005",
+  "tests": "1",
+  "events": 41,
+  "dropped_plumbing_events": 5556,
+  "start": "2026-11-16T13:25:55.0143261Z",
+  "end": "2026-11-16T13:26:17.8395162Z",
+  "host": "DAC-WIN11",
+  "os": "Microsoft Windows 11 Enterprise Evaluation",
+  "sysmon": "15.22",
+  "sha256": "e7abd9db4239f0ac3a1ab61cc414cbf0719b6d6ac7c1148f2fda1091ba19a136"
+}

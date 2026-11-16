@@ -2,4 +2,6 @@
 detects:
   - dataset: otrf_empire_run_keys_standard_user
     min_hits: 1  # powershell.exe writes HKCU\...\CurrentVersion\Run value launching powershell
+  - dataset: dac_runonce_powershell
+    min_hits: 1  # HKLM RunOnce NextRun = powershell.exe "IEX (New-Object Net.WebClient).DownloadString(...)" (own capture, Atomic T1547.001-3)
 max_false_positives: 0

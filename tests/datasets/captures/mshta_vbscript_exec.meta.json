@@ -1,0 +1,13 @@
+{
+  "name": "mshta_vbscript_exec",
+  "technique": "T1218.005",
+  "tests": "2",
+  "events": 26,
+  "dropped_plumbing_events": 7095,
+  "start": "2026-11-16T13:09:11.4913755Z",
+  "end": "2026-11-16T13:09:34.2374428Z",
+  "host": "DAC-WIN11",
+  "os": "Microsoft Windows 11 Enterprise Evaluation",
+  "sysmon": "15.22",
+  "sha256": "d5e5c1be7d11a1728aa2a70e37006050eba51b6dc0ceb1fdbe432ecd409b7a33"
+}

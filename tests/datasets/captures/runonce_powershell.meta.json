@@ -1,0 +1,13 @@
+{
+  "name": "runonce_powershell",
+  "technique": "T1547.001",
+  "tests": "3",
+  "events": 196,
+  "dropped_plumbing_events": 8006,
+  "start": "2026-11-16T13:26:47.2354482Z",
+  "end": "2026-11-16T13:27:11.2720513Z",
+  "host": "DAC-WIN11",
+  "os": "Microsoft Windows 11 Enterprise Evaluation",
+  "sysmon": "15.22",
+  "sha256": "60b1b3236495e97a356213be3c12cbb8e17e9a5a7afa3d0740c8f26f80da51bd"
+}
