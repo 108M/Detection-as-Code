@@ -1,0 +1,42 @@
+title: Run Key Persistence Pointing to Suspicious Location
+id: 1ca69bf2-3647-4330-b917-2b3b1f9af03a
+status: test
+description: |
+  Detects a value written under a Run/RunOnce registry key whose data points to a
+  user-writable or unusual location (Temp, Public, AppData, ProgramData) or to a script
+  interpreter, which is typical of malware persistence.
+references:
+  - https://attack.mitre.org/techniques/T1547/001/
+author: 108M
+date: 2026-11-14
+tags:
+  - attack.persistence
+  - attack.privilege-escalation
+  - attack.t1547.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_key:
+    TargetObject|contains:
+      - '\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\'
+      - '\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce\'
+      - '\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run\'
+  selection_details:
+    Details|contains:
+      - '\AppData\Local\Temp\'
+      - '\Windows\Temp\'
+      - '\Users\Public\'
+      - '\AppData\Roaming\'
+      - 'C:\ProgramData\'
+      - 'powershell'
+      - 'mshta'
+      - 'wscript'
+      - 'cscript'
+      - 'rundll32'
+  filter_optional_onedrive:
+    Details|contains: '\AppData\Local\Microsoft\OneDrive\'
+  condition: all of selection_* and not 1 of filter_optional_*
+falsepositives:
+  - Software updaters that register themselves from AppData (Teams, Discord, Spotify)
+level: medium

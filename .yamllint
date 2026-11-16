@@ -8,3 +8,5 @@ rules:
     allowed-values: ["true", "false", "on"]
   comments:
     min-spaces-from-content: 1
+  # Line endings are normalised by git (.gitattributes), not by the editor.
+  new-lines: disable

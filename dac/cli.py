@@ -1,5 +1,6 @@
 """Command line entry point for the Detection-as-Code pipeline."""
 
+import os
 from pathlib import Path
 
 import typer
@@ -25,9 +26,35 @@ def _not_implemented(stage: str) -> None:
 
 
 @app.command()
-def validate(rules: Path = typer.Option(RULES_DIR, help="Directory with Sigma rules.")) -> None:
+def validate(
+    rules: Path = typer.Option(RULES_DIR, help="Directory with Sigma rules."),
+    cases: Path = typer.Option(Path("tests/cases"), help="Directory with test case manifests."),
+    strict: bool = typer.Option(False, "--strict", help="Treat warnings as errors."),
+) -> None:
     """Check Sigma syntax, required metadata and ATT&CK tags."""
-    _not_implemented("validate")
+    from dac.validate import Severity
+    from dac.validate import validate as run_validate
+
+    issues, total = run_validate(rules, cases)
+    in_ci = os.environ.get("GITHUB_ACTIONS") == "true"
+    for issue in issues:
+        is_error = issue.severity == Severity.ERROR or strict
+        if in_ci:
+            level = "error" if is_error else "warning"
+            typer.echo(
+                f"::{level} file={issue.path.as_posix()},title={issue.code}::{issue.message}"
+            )
+        else:
+            color = typer.colors.RED if is_error else typer.colors.YELLOW
+            typer.secho(str(issue), fg=color)
+
+    errors = sum(1 for i in issues if i.severity == Severity.ERROR or strict)
+    warnings = len(issues) - errors
+    bad_files = len({i.path for i in issues if i.severity == Severity.ERROR or strict})
+    summary = f"{total} rules checked: {total - bad_files} ok, {errors} errors, {warnings} warnings"
+    typer.secho(summary, fg=typer.colors.RED if errors else typer.colors.GREEN, bold=True)
+    if errors:
+        raise typer.Exit(code=1)
 
 
 @app.command()

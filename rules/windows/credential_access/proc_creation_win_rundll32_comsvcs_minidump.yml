@@ -1,0 +1,34 @@
+title: LSASS Dump via Comsvcs.dll MiniDump
+id: f50db523-fffb-49ba-a611-19c7b5e6be17
+status: test
+description: |
+  Detects the "living off the land" technique of calling the MiniDump export of comsvcs.dll
+  through rundll32 to write a memory dump of a process (usually LSASS) to disk.
+references:
+  - https://attack.mitre.org/techniques/T1003/001/
+  - https://lolbas-project.github.io/lolbas/Libraries/comsvcs/
+author: 108M
+date: 2026-11-14
+tags:
+  - attack.credential-access
+  - attack.t1003.001
+  - attack.stealth
+  - attack.t1218.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    - Image|endswith: '\rundll32.exe'
+    - OriginalFileName: 'RUNDLL32.EXE'
+  selection_dll:
+    CommandLine|contains: 'comsvcs'
+  selection_export:
+    CommandLine|contains:
+      - 'MiniDump'
+      - '#24'
+      - '#+24'
+  condition: all of selection_*
+falsepositives:
+  - Unlikely
+level: high
