@@ -42,7 +42,7 @@ docker compose -f lab/docker-compose.yml up -d --wait
 dac lab setup && dac lab check
 ```
 
-Más detalles en [`lab/README.md`](lab/README.md).
+Más detalles en [`lab/README.md`](lab/README.md). Convenciones de reglas: [`docs/rule-conventions.md`](docs/rule-conventions.md).
 
 ## Licencia
 

@@ -18,7 +18,6 @@ dependencies = [
     "pysigma-pipeline-sysmon>=1.0",
     "pysigma-pipeline-windows>=1.2",
     "elasticsearch>=8.13,<9",
-    "mitreattack-python>=3.0",
     "requests>=2.31",
 ]
 

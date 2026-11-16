@@ -22,3 +22,6 @@ lab/.env
 .DS_Store
 Thumbs.db
 README.md
+
+# Caches (ATT&CK STIX index, etc.)
+.cache/

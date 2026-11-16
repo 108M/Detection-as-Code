@@ -1,0 +1,34 @@
+title: PsExec Service Installation
+id: 7cc8c2d3-0856-4a4a-922a-ee985fd3543d
+status: test
+description: |
+  Detects installation of the PsExec service (PSEXESVC) or services with PsExec-like
+  random names created by Impacket psexec, which indicate remote command execution over SMB.
+references:
+  - https://attack.mitre.org/techniques/T1021/002/
+  - https://attack.mitre.org/techniques/T1569/002/
+  - https://learn.microsoft.com/en-us/sysinternals/downloads/psexec
+author: 108M
+date: 2026-11-14
+tags:
+  - attack.lateral-movement
+  - attack.t1021.002
+  - attack.execution
+  - attack.t1569.002
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_eid:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+  selection_psexec:
+    - ServiceName: 'PSEXESVC'
+    - ImagePath|endswith: '\PSEXESVC.exe'
+  selection_impacket:
+    # Impacket psexec.py uploads a random 8-letter binary to %systemroot%
+    ImagePath|re: '(?i)^%systemroot%\\[a-z]{8}\.exe$'
+  condition: selection_eid and (selection_psexec or selection_impacket)
+falsepositives:
+  - Legitimate administrative use of Sysinternals PsExec
+level: high

@@ -1,0 +1,33 @@
+title: Domain Trust and Domain Controller Discovery via Nltest
+id: 6b24626e-9765-4e57-9ba2-53a5551e98db
+status: test
+description: |
+  Detects nltest.exe used to enumerate domain trusts or domain controllers, a common early
+  step of ransomware operators and AD reconnaissance tooling.
+references:
+  - https://attack.mitre.org/techniques/T1482/
+  - https://attack.mitre.org/techniques/T1018/
+author: 108M
+date: 2026-11-14
+tags:
+  - attack.discovery
+  - attack.t1482
+  - attack.t1018
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    - Image|endswith: '\nltest.exe'
+    - OriginalFileName: 'nltestrk.exe'
+  selection_cmd:
+    CommandLine|contains:
+      - '/domain_trusts'
+      - '/all_trusts'
+      - '/trusted_domains'
+      - '/dclist:'
+      - '/dsgetdc:'
+  condition: all of selection_*
+falsepositives:
+  - Domain administrators troubleshooting trust relationships
+level: medium

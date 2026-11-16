@@ -1,0 +1,46 @@
+title: Suspicious LSASS Process Access
+id: c40da9d3-b6e5-4bc2-ae97-5901d11144f0
+status: test
+description: |
+  Detects a process opening a handle to lsass.exe with access masks typically used to read
+  its memory (credential dumping with Mimikatz, ProcDump, nanodump, etc.). Known security
+  and system processes that legitimately inspect LSASS are excluded.
+references:
+  - https://attack.mitre.org/techniques/T1003/001/
+  - https://learn.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights
+author: 108M
+date: 2026-11-14
+tags:
+  - attack.credential-access
+  - attack.t1003.001
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    TargetImage|endswith: '\lsass.exe'
+    GrantedAccess:
+      - '0x1010'   # PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ (Mimikatz sekurlsa)
+      - '0x1410'   # + PROCESS_QUERY_INFORMATION
+      - '0x1438'
+      - '0x143a'
+      - '0x1fffff' # PROCESS_ALL_ACCESS
+  filter_main_system:
+    SourceImage|startswith:
+      - 'C:\Windows\System32\'
+      - 'C:\Windows\SysWOW64\'
+    SourceImage|endswith:
+      - '\wininit.exe'
+      - '\csrss.exe'
+      - '\services.exe'
+      - '\svchost.exe'
+      - '\lsm.exe'
+      - '\wmiprvse.exe'
+  filter_main_defender:
+    SourceImage|startswith: 'C:\ProgramData\Microsoft\Windows Defender\Platform\'
+    SourceImage|endswith: '\MsMpEng.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+  - EDR/AV agents not covered by the filters
+  - Legitimate troubleshooting with ProcDump by administrators
+level: high
