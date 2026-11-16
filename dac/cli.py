@@ -211,10 +211,71 @@ def coverage(
 
 @app.command()
 def deploy(
+    rules: Path = typer.Option(RULES_DIR, help="Directory with Sigma rules."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show changes without applying them."),
+    prune: bool = typer.Option(
+        False, "--prune", help="Delete managed rules no longer in the repo (default: disable)."
+    ),
+    index: list[str] = typer.Option(None, "--index", help="Override target indices (repeatable)."),
+    force: bool = typer.Option(
+        False, "--force", help="Redeploy every rule (e.g. after rotating the API key)."
+    ),
 ) -> None:
-    """Sync rules with Kibana Detection Engine."""
-    _not_implemented("deploy")
+    """Sync rules with Kibana Detection Engine (the repository is the source of truth)."""
+    from dac import deploy as dep
+    from dac.convert import convert as run_convert
+    from dac.validate import discover
+
+    conversion = run_convert(discover(rules), index_override=index or None)
+    if conversion.errors:
+        for path, message in conversion.errors:
+            typer.secho(f"{path.as_posix()}: error: {message}", fg=typer.colors.RED, err=True)
+        typer.secho("Conversion failed: nothing deployed.", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(code=1)
+
+    try:
+        api = dep.KibanaRulesApi(Settings.load())
+        current = api.find_managed()
+    except (dep.DeployError, OSError) as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    the_plan = dep.plan(conversion.rules, current, prune=prune, force=force)
+    colors = {
+        "create": typer.colors.GREEN,
+        "update": typer.colors.CYAN,
+        "drift": typer.colors.MAGENTA,
+        "disable": typer.colors.YELLOW,
+        "delete": typer.colors.RED,
+    }
+    for a in the_plan.actions:
+        if a.kind == "unchanged" and not a.detail:
+            continue
+        typer.secho(
+            f"  {a.kind:9} {a.name}" + (f"  ({a.detail})" if a.detail else ""),
+            fg=colors.get(a.kind),
+        )
+    summary = ", ".join(
+        f"{the_plan.count(k)} {k}"
+        for k in ("create", "update", "drift", "disable", "delete", "unchanged")
+        if the_plan.count(k)
+    )
+    if dry_run or not the_plan.changes:
+        prefix = "Dry run" if dry_run else "Kibana is in sync"
+        typer.secho(f"{prefix}: {summary}", bold=True)
+        return
+
+    errors = dep.apply(the_plan, api, log=lambda _: None)
+    for e in errors:
+        typer.secho(f"  {e}", fg=typer.colors.RED)
+    typer.secho(
+        f"Deployed to {Settings.load().kibana_url}: {summary}"
+        + (f", {len(errors)} errors" if errors else ""),
+        fg=typer.colors.RED if errors else typer.colors.GREEN,
+        bold=True,
+    )
+    if errors:
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -236,14 +297,48 @@ def lab_init(force: bool = typer.Option(False, "--force", help="Overwrite lab/.e
 @lab_app.command("setup")
 def lab_setup(
     timeout: int = typer.Option(300, help="Seconds to wait for Elasticsearch/Kibana."),
+    rotate_key: bool = typer.Option(
+        False, "--rotate-key", help="Create a new API key and invalidate the old ones."
+    ),
 ) -> None:
-    """Create pipeline role, user, API key and test index template (idempotent)."""
+    """Create pipeline role, user, API key and index templates (idempotent)."""
     try:
-        lab_mod.setup(Settings.load(), log=typer.echo, timeout=timeout)
+        lab_mod.setup(Settings.load(), log=typer.echo, timeout=timeout, rotate_key=rotate_key)
     except lab_mod.LabError as exc:
         typer.secho(str(exc), fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from exc
     typer.secho("Lab ready. Verify with: dac lab check", fg=typer.colors.GREEN)
+
+
+@lab_app.command("replay")
+def lab_replay(
+    datasets: list[str] = typer.Argument(None, help="Dataset ids from tests/datasets/sources.yml."),
+    clean: bool = typer.Option(False, "--clean", help="Delete all replay indices."),
+) -> None:
+    """Replay datasets with current timestamps so deployed rules raise alerts in Kibana."""
+    from dac import replay as rep
+    from dac.datasets import load_manifest
+    from dac.testing import es_client
+
+    es = es_client(Settings.load())
+    if clean:
+        typer.echo(f"Deleted {rep.clean(es)} replay indices.")
+        return
+    known = {d.id: d for d in load_manifest()}
+    if not datasets:
+        typer.echo("Available datasets:")
+        for ds_id in sorted(known):
+            typer.echo(f"  {ds_id}")
+        raise typer.Exit(code=1)
+    for ds_id in datasets:
+        if ds_id not in known:
+            typer.secho(f"unknown dataset {ds_id}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+        index, n = rep.replay(es, known[ds_id], log=typer.echo)
+        typer.secho(
+            f"  {n} events -> {index} (last {rep.WINDOW.seconds // 60} min)", fg=typer.colors.GREEN
+        )
+    typer.echo("Alerts appear in Kibana > Security > Alerts after the next rule run (<= 5 min).")
 
 
 @lab_app.command("check")

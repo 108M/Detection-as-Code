@@ -17,12 +17,16 @@ PIPELINE_USER = "dac_pipeline"
 PIPELINE_ROLE = "dac_pipeline"
 TEST_INDEX_TEMPLATE = "dac-test"
 TEST_INDEX_PATTERN = "dac-test-*"
+# Replayed telemetry lands in an index the deployed rules already read (winlogbeat-*).
+REPLAY_INDEX_TEMPLATE = "dac-replay"
+REPLAY_INDEX_PATTERN = "winlogbeat-dac-replay-*"
 
 # Indices the pipeline reads/writes. Detection rules run with the privileges of
 # the API key that created them, so it needs the source data and the alerts index.
 PIPELINE_INDICES = [
     "dac-*",
     "logs-*",
+    "winlogbeat-*",
     ".alerts-security*",
     ".siem-signals-*",
     ".lists-*",
@@ -119,7 +123,12 @@ def _check(resp: requests.Response, action: str) -> dict[str, Any]:
     return resp.json() if resp.content else {}
 
 
-def setup(settings: Settings, log: Callable[[str], None] = print, timeout: int = 300) -> None:
+def setup(
+    settings: Settings,
+    log: Callable[[str], None] = print,
+    timeout: int = 300,
+    rotate_key: bool = False,
+) -> None:
     """Idempotent bootstrap of the pipeline identity and test index template."""
     if not settings.elastic_password:
         raise LabError("ELASTIC_PASSWORD not set (run `dac lab init` first)")
@@ -196,8 +205,10 @@ def setup(settings: Settings, log: Callable[[str], None] = print, timeout: int =
     update_env_file({"DAC_PIPELINE_PASSWORD": password})
     log(f"user {PIPELINE_USER}: ok")
 
-    # 3. API key owned by the pipeline user (inherits its privileges).
-    if settings.api_key and _api_key_valid(settings):
+    # 3. API key owned by the pipeline user. Without role descriptors it gets a
+    # point-in-time snapshot of the user's privileges: after a role change the key
+    # has to be rotated (--rotate-key) and the rules redeployed (dac deploy --force).
+    if settings.api_key and _api_key_valid(settings) and not rotate_key:
         log("API key: existing key still valid, keeping it")
     else:
         key = _check(
@@ -211,6 +222,23 @@ def setup(settings: Settings, log: Callable[[str], None] = print, timeout: int =
         )
         update_env_file({"DAC_API_KEY": key["encoded"]})
         log("API key: created and stored in lab/.env")
+        old = _check(
+            es.get(
+                f"{settings.es_url}/_security/api_key",
+                params={"name": "dac-pipeline", "active_only": "true"},
+                timeout=30,
+            ),
+            "list API keys",
+        ).get("api_keys", [])
+        stale = [
+            k["id"] for k in old if k["id"] != key["id"] and k.get("username") == PIPELINE_USER
+        ]
+        if stale:
+            _check(
+                es.delete(f"{settings.es_url}/_security/api_key", json={"ids": stale}, timeout=30),
+                "invalidate old API keys",
+            )
+            log(f"API key: invalidated {len(stale)} previous key(s)")
 
     # 4. Index template for test telemetry.
     _check(
@@ -222,6 +250,15 @@ def setup(settings: Settings, log: Callable[[str], None] = print, timeout: int =
         "create index template",
     )
     log(f"index template {TEST_INDEX_TEMPLATE} ({TEST_INDEX_PATTERN}): ok")
+    _check(
+        es.put(
+            f"{settings.es_url}/_index_template/{REPLAY_INDEX_TEMPLATE}",
+            json={**TEST_TEMPLATE_BODY, "index_patterns": [REPLAY_INDEX_PATTERN]},
+            timeout=30,
+        ),
+        "create replay index template",
+    )
+    log(f"index template {REPLAY_INDEX_TEMPLATE} ({REPLAY_INDEX_PATTERN}): ok")
 
 
 def _api_key_valid(settings: Settings) -> bool:
