@@ -16,7 +16,7 @@ STIX_URL = (
     "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/"
     "{domain}/{domain}-{version}.json"
 )
-INDEX_SCHEMA = "v2"  # bump when the cached index layout changes
+INDEX_SCHEMA = "v3"  # bump when the cached index layout changes
 CACHE_DIR = Path(os.environ.get("DAC_CACHE_DIR", ".cache")) / "attack"
 
 
@@ -46,6 +46,22 @@ class AttackData:
     tactics: dict[str, str] = field(default_factory=dict)  # "credential-access" -> "TA0006"
     # (domain, shortname) -> Tactic. Enterprise and ICS reuse shortnames ("execution").
     tactic_info: dict[tuple[str, str], Tactic] = field(default_factory=dict)
+    # domain -> tactic shortnames in matrix (kill chain) order
+    tactic_order: dict[str, list[str]] = field(default_factory=dict)
+
+    def techniques_in(
+        self, domain: str, tactic: str, subtechniques: bool = False
+    ) -> list[Technique]:
+        """Active techniques of a tactic (parents only unless subtechniques=True)."""
+        return [
+            t
+            for t in self.techniques.values()
+            if t.domain == domain
+            and tactic in t.tactics
+            and not (t.revoked or t.deprecated)
+            and (subtechniques or "." not in t.id)
+        ]
+
     other_ids: set[str] = field(default_factory=set)  # groups (G), software (S), campaigns (C)
 
 
@@ -72,6 +88,7 @@ def _build_index(domain: str, version: str) -> dict:
     techniques: dict[str, dict] = {}
     tactics: dict[str, dict] = {}
     other: list[str] = []
+    tactic_stix: dict[str, str] = {}
     stix_to_ext = {o["id"]: _ext_id(o) for o in bundle["objects"] if _ext_id(o)}
     revoked_by = {
         o["source_ref"]: stix_to_ext.get(o["target_ref"])
@@ -101,10 +118,19 @@ def _build_index(domain: str, version: str) -> dict:
                 techniques[ext] = entry
         elif kind == "x-mitre-tactic":
             tactics[obj["x_mitre_shortname"]] = {"id": ext, "name": obj["name"]}
+            tactic_stix[obj["id"]] = obj["x_mitre_shortname"]
         elif kind in ("intrusion-set", "malware", "tool", "campaign"):
             other.append(ext)
 
-    index = {"version": version, "techniques": techniques, "tactics": tactics, "other": other}
+    matrix = next((o for o in bundle["objects"] if o.get("type") == "x-mitre-matrix"), {})
+    order = [tactic_stix[ref] for ref in matrix.get("tactic_refs", []) if ref in tactic_stix]
+    index = {
+        "version": version,
+        "techniques": techniques,
+        "tactics": tactics,
+        "tactic_order": order,
+        "other": other,
+    }
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     _index_path(domain, version).write_text(json.dumps(index), encoding="utf-8")
     return index
@@ -130,6 +156,7 @@ def load(version: str = ATTACK_VERSION) -> AttackData:
                 revoked=t["revoked"],
                 revoked_by=t.get("revoked_by"),
             )
+        data.tactic_order[domain] = index.get("tactic_order", [])
         for short, t in index["tactics"].items():
             data.tactic_info[(domain, short)] = Tactic(t["id"], t["name"], short, domain)
             data.tactics.setdefault(short, t["id"])  # enterprise (loaded first) wins

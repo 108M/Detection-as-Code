@@ -19,6 +19,7 @@ dependencies = [
     "pysigma-pipeline-windows>=1.2",
     "elasticsearch>=8.13,<9",
     "requests>=2.31",
+    "jinja2>=3.1",
 ]
 
 [project.optional-dependencies]
@@ -35,6 +36,9 @@ dac = "dac.cli:app"
 
 [tool.setuptools.packages.find]
 include = ["dac*"]
+
+[tool.setuptools.package-data]
+dac = ["templates/*.j2"]
 
 [tool.ruff]
 line-length = 100

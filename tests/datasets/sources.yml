@@ -127,4 +127,4 @@ datasets:
     format: windows-kv
     sha256: 097f16e7d92b0c75797244543e88a9eeaad80b861a31b053feddeb68fcd1772e
     techniques: [T1569.002]
-    description: Atomic Red Team T1569.002 (PsExec, sc create) - System log
+    description: Atomic Red Team T1569.002 (sc create ARTService running cmd/powershell) + 20 legitimate service installs - System log

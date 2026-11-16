@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Detection Coverage</title>
+<meta name="description" content="Sigma detection rules tested against real attack telemetry: ATT&CK coverage, detection rate and false positives.">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1c2430; --muted: #5d6878; --border: #e1e5eb;
+    --accent: #3559c7; --chip-text: #ffffff; --row: #fafbfc;
+    --tested: {{ states.tested.color }}; --untested: {{ states.untested.color }};
+    --failing: {{ states.failing.color }}; --experimental: {{ states.experimental.color }};
+    --empty: #eef0f3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1318; --panel: #171c23; --text: #e6e9ee; --muted: #98a2b3; --border: #283039;
+      --accent: #7b9cff; --row: #1b2129; --empty: #1f262f;
+    }
+  }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0f1318; --panel: #171c23; --text: #e6e9ee; --muted: #98a2b3; --border: #283039;
+    --accent: #7b9cff; --row: #1b2129; --empty: #1f262f;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 32px 16px 64px; }
+  header h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); }
+  .meta { margin-top: 8px; font-size: 13px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+  section { margin-top: 36px; }
+  h2 { font-size: 18px; margin: 0 0 12px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 24px; }
+  .kpi { padding: 16px 18px; }
+  .kpi .label { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .kpi .value { font-size: 28px; font-weight: 650; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .kpi .sub { font-size: 13px; color: var(--muted); }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .toolbar h2 { margin: 0; }
+  .btn { display: inline-block; padding: 7px 12px; border-radius: 7px; border: 1px solid var(--border);
+         background: var(--panel); color: var(--text); font-size: 13px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+  .legend > span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+                         margin-right: 6px; background: var(--c); vertical-align: -1px; }
+  .matrix { overflow-x: auto; padding: 12px; }
+  .grid { display: grid; grid-template-columns: repeat({{ m.tactics|length }}, minmax(132px, 1fr)); gap: 8px; min-width: {{ m.tactics|length * 140 }}px; }
+  .col h3 { font-size: 12px; margin: 0; line-height: 1.3; min-height: 32px; }
+  .col .count { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bar { height: 4px; background: var(--empty); border-radius: 2px; margin: 4px 0 8px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .tech { display: block; border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; font-size: 12px;
+          line-height: 1.3; color: var(--chip-text); background: var(--c); }
+  .tech b { display: block; font-weight: 650; }
+  .none { font-size: 12px; color: var(--muted); padding: 6px 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+  tbody tr:nth-child(even) { background: var(--row); }
+  td.warn { color: var(--untested); font-weight: 650; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .table-wrap { overflow-x: auto; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; color: #fff; background: var(--c); white-space: nowrap; }
+  .ids { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; color: var(--muted); }
+  .reason { color: var(--muted); font-size: 13px; }
+  footer { margin-top: 48px; font-size: 13px; color: var(--muted); }
+  @media (max-width: 640px) { header h1 { font-size: 22px; } .kpi .value { font-size: 24px; } }
+  .l-es { display: none; }
+  html[data-lang="es"] .l-es { display: inline; }
+  html[data-lang="es"] .l-en { display: none; }
+  .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  button.btn { cursor: pointer; font: inherit; font-size: 13px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+<script>
+  (function () {
+    var lang = null;
+    try { lang = localStorage.getItem("dac-lang"); } catch (e) {}
+    if (!lang) lang = (navigator.language || "en").toLowerCase().indexOf("es") === 0 ? "es" : "en";
+    document.documentElement.setAttribute("data-lang", lang);
+    document.documentElement.lang = lang;
+  })();
+</script>
+</head>
+{% macro T(en, es) %}<span class="l-en">{{ en }}</span><span class="l-es">{{ es }}</span>{% endmacro %}
+{% set status_es = {"pass": "pasa", "fail": "falla", "error": "error", "untested": "sin tests", "not-run": "no ejecutado"} %}
+{% set level_es = {"informational": "informativo", "low": "bajo", "medium": "medio", "high": "alto", "critical": "crítico"} %}
+<body>
+<div class="wrap">
+  <header class="head">
+    <div>
+      <h1>{{ T("Detection Coverage", "Cobertura de detección") }}</h1>
+      <p>{{ T("Sigma rules converted to Elastic EQL and tested in CI against real attack telemetry.",
+              "Reglas Sigma convertidas a EQL de Elastic y probadas en CI contra telemetría de ataques reales.") }}</p>
+      <div class="meta">
+        <span>ATT&amp;CK v{{ m.attack_version }}</span>
+        <span>{{ T("Generated", "Generado") }} {{ m.generated_at }}</span>
+        {% if m.commit %}<span>Commit <a href="{{ repo_url }}/commit/{{ m.commit }}">{{ m.commit[:7] }}</a></span>{% endif %}
+        <span><a href="{{ repo_url }}">{{ T("Repository", "Repositorio") }}</a></span>
+      </div>
+    </div>
+    <button class="btn" id="lang-toggle" type="button" aria-label="Language / Idioma">
+      <span class="l-en">ES</span><span class="l-es">EN</span>
+    </button>
+  </header>
+
+  <div class="kpis">
+    <div class="panel kpi"><div class="label">{{ T("Rules passing", "Reglas que pasan") }}</div>
+      <div class="value">{{ s.rules_passing }}/{{ s.rules }}</div>
+      <div class="sub">{% if has_report %}{{ T("tested in CI", "probadas en CI") }}{% else %}{{ T("tests not run", "tests no ejecutados") }}{% endif %}</div></div>
+    <div class="panel kpi"><div class="label">{{ T("Techniques", "Técnicas") }}</div>
+      <div class="value">{{ s.techniques }}</div>
+      <div class="sub">{{ s.tactics_covered }} {{ T("of", "de") }} {{ s.tactics_total }} {{ T("tactics", "tácticas") }}</div></div>
+    {% if ts %}
+    <div class="panel kpi"><div class="label">{{ T("Detection rate", "Tasa de detección") }}</div>
+      <div class="value">{{ "%.0f"|format(ts.detection_rate * 100) }}%</div>
+      <div class="sub">{{ ts.detected }}/{{ ts.expected_detections }} {{ T("attack datasets", "datasets de ataque") }}</div></div>
+    <div class="panel kpi"><div class="label">{{ T("Alert precision", "Precisión de alertas") }}</div>
+      <div class="value">{{ "%.1f"|format(ts.alert_precision * 100) }}%</div>
+      <div class="sub">{{ ts.true_positive_hits }} TP · {{ ts.false_positive_hits }} FP hits</div></div>
+    <div class="panel kpi"><div class="label">{{ T("Events tested", "Eventos probados") }}</div>
+      <div class="value">{{ "{:,}".format(ts.events) }}</div>
+      <div class="sub">{{ ts.datasets }} datasets</div></div>
+    {% endif %}
+  </div>
+
+  <section>
+    <div class="toolbar">
+      <h2>{{ T("ATT&CK Enterprise matrix", "Matriz ATT&CK Enterprise") }}</h2>
+      <div class="actions">
+        <a class="btn" href="layer.json" download="dac-coverage-layer.json"
+           title="{{ 'ATT&CK Navigator: Open Existing Layer → Upload from local' }}">{{ T("Download layer", "Descargar capa") }} ↓</a>
+        <a class="btn" href="{{ navigator_link }}">{{ T("Open in ATT&CK Navigator", "Abrir en ATT&CK Navigator") }} ↗</a>
+      </div>
+    </div>
+    <div class="legend">
+      {% for key, st in states.items() %}<span style="--c: var(--{{ key }})">{{ T(st.label, st.label_es) }}</span>{% endfor %}
+    </div>
+    <div class="panel matrix">
+      <div class="grid">
+        {% for t in m.tactics %}
+        <div class="col">
+          <h3>{{ t.name }}</h3>
+          <div class="count">{{ t.covered }}/{{ t.total }} {{ T("techniques", "técnicas") }}</div>
+          <div class="bar"><i style="width: {{ t.percent }}%"></i></div>
+          {% for tech in t.techniques %}
+          <a class="tech" style="--c: var(--{{ tech.state }})" href="https://attack.mitre.org/techniques/{{ tech.id|replace('.', '/') }}/"
+             title="{{ tech.rules|map(attribute='title')|join(', ') }}"><b>{{ tech.id }}</b>{{ tech.name }}</a>
+          {% else %}
+          <div class="none">—</div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>{{ T("Rules", "Reglas") }}</h2>
+    <div class="panel table-wrap">
+      <table>
+        <thead><tr><th>{{ T("Status", "Estado") }}</th><th>{{ T("Rule", "Regla") }}</th><th>{{ T("Techniques", "Técnicas") }}</th>
+          <th>{{ T("Level", "Nivel") }}</th><th class="num">TP hits</th><th class="num">FP hits</th></tr></thead>
+        <tbody>
+        {% for r in m.rules %}
+          <tr>
+            <td><span class="pill" style="--c: var(--{{ r.state }})">{{ T(r.test_status, status_es.get(r.test_status, r.test_status)) }}</span></td>
+            <td><a href="{{ repo_url }}/blob/main/{{ r.path }}">{{ r.title }}</a></td>
+            <td class="ids">{{ r.techniques|join(', ') }}</td>
+            <td>{{ T(r.level, level_es.get(r.level, r.level)) }}</td>
+            <td class="num">{{ r.tp_hits }}</td>
+            <td class="num{% if r.fp_hits %} warn{% endif %}">{{ r.fp_hits }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% set gaps = [] %}{% for r in m.rules %}{% for g in r.gaps %}{% set _ = gaps.append((r, g)) %}{% endfor %}{% endfor %}
+  {% if gaps %}
+  <section>
+    <h2>{{ T("Detection backlog", "Backlog de detección") }}</h2>
+    <p class="reason">{{ T("Attack variants in the test corpus that the current rules do not catch, documented in each rule's test case.",
+                           "Variantes de ataque del corpus de test que las reglas actuales no detectan, documentadas en el caso de test de cada regla.") }}</p>
+    <div class="panel table-wrap">
+      <table>
+        <thead><tr><th>{{ T("Rule", "Regla") }}</th><th>Dataset</th><th>{{ T("Why it is missed", "Por qué no se detecta") }}</th></tr></thead>
+        <tbody>
+        {% for r, g in gaps %}
+          <tr><td>{{ r.title }}</td><td class="ids">{{ g.dataset }}</td><td class="reason">{{ g.reason }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% set afps = [] %}{% for r in m.rules %}{% for a in r.accepted_fps %}{% set _ = afps.append((r, a)) %}{% endfor %}{% endfor %}
+  {% if afps %}
+  <section>
+    <h2>{{ T("Accepted false positives", "Falsos positivos aceptados") }}</h2>
+    <p class="reason">{{ T("Known benign activity, counted in precision and capped: the build fails if it grows.",
+                           "Actividad benigna conocida: cuenta en la precisión y tiene un tope; el build falla si crece.") }}</p>
+    <div class="panel table-wrap">
+      <table>
+        <thead><tr><th>{{ T("Rule", "Regla") }}</th><th>Dataset</th><th class="num">{{ T("Hits / budget", "Hits / tope") }}</th><th>{{ T("Reason", "Motivo") }}</th></tr></thead>
+        <tbody>
+        {% for r, a in afps %}
+          <tr><td>{{ r.title }}</td><td class="ids">{{ a.dataset }}</td>
+            <td class="num">{{ a.hits if a.hits is not none else "–" }}/{{ a.max_hits }}</td>
+            <td class="reason">{{ a.reason }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if m.datasets %}
+  <section>
+    <h2>{{ T("Test datasets", "Datasets de test") }}</h2>
+    <div class="panel table-wrap">
+      <table>
+        <thead><tr><th>Dataset</th><th>{{ T("Techniques", "Técnicas") }}</th><th class="num">{{ T("Events", "Eventos") }}</th><th>{{ T("Description", "Descripción") }}</th></tr></thead>
+        <tbody>
+        {% for d in m.datasets %}
+          <tr><td class="ids">{{ d.id }}</td><td class="ids">{{ d.techniques|join(', ') }}</td>
+            <td class="num">{{ "{:,}".format(d.events) }}</td><td class="reason">{{ d.description }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <footer>
+    {{ T("Generated by", "Generado por") }} <code>dac coverage</code>. {{ T("Raw data", "Datos") }}:
+    <a href="coverage.json">coverage.json</a> · <a href="layer.json">{{ T("Navigator layer", "Capa del Navigator") }}</a>
+    {% if has_report %} · <a href="test-report.json">{{ T("test report", "informe de tests") }}</a>{% endif %}.
+    {{ T("Rule and dataset details are in English, as in the repository.", "Los detalles de reglas y datasets están en inglés, como en el repositorio.") }}
+    Datasets: OTRF Security-Datasets (MIT), Splunk attack_data (Apache-2.0).
+  </footer>
+</div>
+<script>
+  document.getElementById("lang-toggle").addEventListener("click", function () {
+    var next = document.documentElement.getAttribute("data-lang") === "es" ? "en" : "es";
+    document.documentElement.setAttribute("data-lang", next);
+    document.documentElement.lang = next;
+    try { localStorage.setItem("dac-lang", next); } catch (e) {}
+  });
+</script>
+</body>
+</html>
