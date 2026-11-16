@@ -22,7 +22,7 @@ flowchart LR
 |------|-----------|
 | `rules/` | Reglas Sigma agrupadas por táctica ATT&CK |
 | `tests/cases/` | Manifiesto de test por regla (datasets que deben / no deben disparar) |
-| `tests/datasets/` | Telemetría normalizada a ECS (`attack/`, `benign/`) |
+| `tests/datasets/` | Manifiesto de datasets (`sources.yml`): fuentes fijadas a un commit + sha256 |
 | `dac/` | CLI del pipeline: `validate`, `convert`, `test`, `coverage`, `deploy` |
 | `pipelines/` | Pipelines pySigma propios (mapeo de campos) |
 | `lab/` | Elasticsearch + Kibana en Docker |
@@ -40,9 +40,13 @@ dac --help
 dac lab init
 docker compose -f lab/docker-compose.yml up -d --wait
 dac lab setup && dac lab check
+
+# Tests contra telemetría de ataque real
+dac datasets fetch
+dac test
 ```
 
-Más detalles en [`lab/README.md`](lab/README.md). Convenciones de reglas: [`docs/rule-conventions.md`](docs/rule-conventions.md). Conversión a Elastic: [`docs/conversion.md`](docs/conversion.md).
+Más detalles en [`lab/README.md`](lab/README.md). Convenciones de reglas: [`docs/rule-conventions.md`](docs/rule-conventions.md). Conversión a Elastic: [`docs/conversion.md`](docs/conversion.md). Tests contra telemetría: [`docs/testing.md`](docs/testing.md).
 
 ## Licencia
 

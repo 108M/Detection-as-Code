@@ -1,0 +1,9 @@
+# Windows Event Log Cleared via Command Line
+detects:
+  - dataset: splunk_t1070_001_wevtutil_clear_security
+    min_hits: 3  # Security 4688: wevtutil cl Application / Security / System
+  - dataset: splunk_t1070_001_art_sysmon
+    min_hits: 2  # Sysmon 1: "wevtutil cl System" and a multi-line Clear-EventLog loop
+# Implicit negative: otrf_cmd_wevtutil_modify_security_eventlog_path runs
+# "wevtutil sl" (changes the log path) and must not match a "clear" rule.
+max_false_positives: 0

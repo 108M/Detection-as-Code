@@ -1,0 +1,20 @@
+# PowerShell Encoded Command Execution
+detects:
+  - dataset: otrf_empire_launcher_vbs
+    min_hits: 1  # VBS launcher -> powershell -noP -sta -w 1 -enc <stager>
+also_detects:
+  - dataset: otrf_empire_psexec_dcerpc_tcp_svcctl
+    reason: Empire psexec service runs the same encoded PowerShell stager
+  - dataset: otrf_empire_run_keys_standard_user
+    reason: Empire stager (powershell -enc) used to deliver the persistence module
+accepted_false_positives:
+  - dataset: splunk_t1070_001_art_sysmon
+    max_hits: 37
+    reason: >-
+      Ansible over WinRM (the Attack Range orchestration): every task runs
+      "PowerShell -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -EncodedCommand"
+      with Ansible's exec wrapper (decoded: "&chcp.com 65001 > $null $exec_wrapper_str ...",
+      "Reboot initiated by Ansible", Install-PackageProvider). Real-world benign noise for
+      this rule; handle with an environment exception (Ansible host / service account),
+      not in the generic rule. The budget catches any increase.
+max_false_positives: 0

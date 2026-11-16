@@ -91,10 +91,85 @@ def convert(
 
 @app.command()
 def test(
+    rules: Path = typer.Option(RULES_DIR, help="Directory with Sigma rules."),
     cases: Path = typer.Option(Path("tests/cases"), help="Directory with test case manifests."),
+    report: Path = typer.Option(BUILD_DIR / "test-report.json", help="JSON report output."),
+    reload: bool = typer.Option(False, "--reload", help="Re-index every dataset."),
 ) -> None:
     """Run converted rules against attack and benign telemetry."""
-    _not_implemented("test")
+    from dac import testing
+
+    try:
+        result = testing.run(Settings.load(), rules, cases, force_reload=reload, log=typer.echo)
+    except (testing.TestSetupError, OSError) as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    colors = {
+        "pass": typer.colors.GREEN,
+        "fail": typer.colors.RED,
+        "untested": typer.colors.YELLOW,
+        "error": typer.colors.RED,
+    }
+    in_ci = os.environ.get("GITHUB_ACTIONS") == "true"
+    for r in result.rules:
+        typer.secho(
+            f"[{r.status.upper():8}] {r.title}  (TP hits {r.tp_hits}, FP hits "
+            f"{r.fp_hits}, unlabeled {r.hits_of('unlabeled')})",
+            fg=colors.get(r.status),
+        )
+        for d in r.results:
+            if d.hits or d.expected == "detects":
+                typer.echo(f"      {d.expected:15} {d.dataset:48} {d.hits:6}  {d.note}")
+        for m in r.messages:
+            typer.secho(f"      ! {m}", fg=colors.get(r.status))
+            if in_ci and r.status in ("fail", "error"):
+                typer.echo(f"::error file={r.path},title=dac test::{m}")
+
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(result.to_json(), encoding="utf-8")
+    summary_md = testing.markdown_summary(result)
+    if step_summary := os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(step_summary, "a", encoding="utf-8") as fh:
+            fh.write(summary_md)
+    s = result.summary
+    failed = s["failed"] + s["errors"]
+    typer.secho(
+        f"{s['passed']}/{s['rules']} rules passed, {s['failed']} failed, "
+        f"{s['untested']} untested | detection rate {testing._pct(s['detection_rate'])} | "
+        f"FP hits {s['false_positive_hits']} | precision {testing._pct(s['alert_precision'])} | "
+        f"{s['events']:,} events",
+        fg=typer.colors.RED if failed else typer.colors.GREEN,
+        bold=True,
+    )
+    if failed:
+        raise typer.Exit(code=1)
+
+
+datasets_app = typer.Typer(help="Manage test datasets.", no_args_is_help=True)
+app.add_typer(datasets_app, name="datasets")
+
+
+@datasets_app.command("fetch")
+def datasets_fetch() -> None:
+    """Download and verify every dataset in tests/datasets/sources.yml."""
+    from dac.datasets import DatasetError, fetch, load_manifest
+
+    failed = False
+    for ds in load_manifest():
+        try:
+            digest = fetch(ds, log=typer.echo)
+        except (DatasetError, OSError) as exc:
+            typer.secho(f"  {ds.id}: {exc}", fg=typer.colors.RED)
+            failed = True
+            continue
+        if not ds.sha256 and not ds.local_path:
+            typer.secho(f"  {ds.id}: not pinned, sha256: {digest}", fg=typer.colors.YELLOW)
+            failed = True
+        else:
+            typer.echo(f"  {ds.id}: ok")
+    if failed:
+        raise typer.Exit(code=1)
 
 
 @app.command()

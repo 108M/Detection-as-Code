@@ -1,0 +1,5 @@
+# Domain Trust and Domain Controller Discovery via Nltest
+detects:
+  - dataset: splunk_t1482_art_sysmon
+    min_hits: 2  # nltest /domain_trusts (cmd) and /domain_trusts /all_trusts (powershell)
+max_false_positives: 0

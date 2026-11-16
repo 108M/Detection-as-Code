@@ -1,0 +1,5 @@
+# LSASS Dump via Comsvcs.dll MiniDump
+detects:
+  - dataset: otrf_psh_lsass_memory_dump_comsvcs
+    min_hits: 1  # rundll32 calling the comsvcs export against the LSASS pid
+max_false_positives: 0

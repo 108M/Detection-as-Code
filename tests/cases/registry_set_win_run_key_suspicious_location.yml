@@ -1,0 +1,5 @@
+# Run Key Persistence Pointing to Suspicious Location (Sysmon 13)
+detects:
+  - dataset: otrf_empire_run_keys_standard_user
+    min_hits: 1  # powershell.exe writes HKCU\...\CurrentVersion\Run value launching powershell
+max_false_positives: 0

@@ -1,0 +1,130 @@
+# Attack telemetry used by `dac test`.
+#
+# Third-party datasets are NOT committed: `dac datasets fetch` downloads them from a
+# pinned commit, verifies the sha256 and normalises them to ECS under .cache/datasets.
+# Every rule is run against EVERY dataset: hits in datasets that a rule's test case
+# does not list are counted as false positives, so the background activity recorded
+# in each capture (svchost, updates, agents...) doubles as a benign corpus.
+#
+# Licences: OTRF Security-Datasets (MIT), Splunk attack_data (Apache-2.0).
+
+sources:
+  otrf:
+    base_url: https://raw.githubusercontent.com/OTRF/Security-Datasets/d9d40ef123d2c87d5d3df28c96bcab4f0faccc87/datasets/atomic/windows
+    format: otrf-json
+  splunk:
+    # Files are stored in Git LFS: fetched through the media endpoint.
+    base_url: https://media.githubusercontent.com/media/splunk/attack_data/4b19e4b6824a8ba91b0f5345a3a8de488619e823/datasets/attack_techniques
+    format: windows-xml
+
+datasets:
+  # --- Credential access ------------------------------------------------------------
+  - id: otrf_empire_mimikatz_logonpasswords
+    source: otrf
+    path: credential_access/host/empire_mimikatz_logonpasswords.zip
+    sha256: bb4c057b62d781be5426e011872ba1a15070c07afbb24848a14458f4b22b06fb
+    techniques: [T1003.001]
+    description: Empire Mimikatz sekurlsa::logonpasswords (reads LSASS memory)
+
+  - id: otrf_psh_lsass_memory_dump_comsvcs
+    source: otrf
+    path: credential_access/host/psh_lsass_memory_dump_comsvcs.zip
+    sha256: 0af9e920220d746432f0972be83ad057629695540aecd68c15869d190786e1ae
+    techniques: [T1003.001]
+    description: PowerShell runs rundll32 comsvcs.dll MiniDump against LSASS
+
+  - id: otrf_cmd_lsass_memory_dumpert_syscalls
+    source: otrf
+    path: credential_access/host/cmd_lsass_memory_dumpert_syscalls.zip
+    sha256: a28dbf708685a80edfb0b3d2a00c9bf196dd394fc1d61a933878841f4872a7ed
+    techniques: [T1003.001]
+    description: Outflank Dumpert dumps LSASS with direct syscalls
+
+  - id: otrf_rdp_interactive_taskmanager_lsass_dump
+    source: otrf
+    path: credential_access/host/rdp_interactive_taskmanager_lsass_dump.zip
+    sha256: a7761e64c891162e949afebf367084a6dddd2f3dac7b91bce870fcf9f6206fba
+    techniques: [T1003.001]
+    description: Interactive RDP session dumps LSASS from Task Manager
+
+  - id: otrf_cmd_psexec_lsa_secrets_dump
+    source: otrf
+    path: credential_access/host/cmd_psexec_lsa_secrets_dump.zip
+    sha256: c52e6145fefe37373a5274e2976ccf6d62e4d33e13c55dc1a2ce17f00506d1a6
+    techniques: [T1003.004, T1569.002]
+    description: Sysinternals PsExec -s used to dump LSA secrets from the registry
+
+  # --- Execution / persistence ------------------------------------------------------
+  - id: otrf_empire_launcher_vbs
+    source: otrf
+    path: execution/host/empire_launcher_vbs.zip
+    sha256: 812da270cf8cda6f1948fb6275410f15dc1794d0bd6b623c9c25b2518285019c
+    techniques: [T1059.005, T1059.001]
+    description: Empire VBS launcher spawning an encoded PowerShell stager
+
+  - id: otrf_empire_run_keys_standard_user
+    source: otrf
+    path: persistence/host/empire_persistence_registry_modification_run_keys_standard_user.zip
+    sha256: 2965f791bcaf5e6ccfc4059985e81fd7e67ec87f17855b6c383edd1b03a19c36
+    techniques: [T1547.001]
+    description: Empire persistence via HKCU Run key
+
+  - id: otrf_empire_schtasks_creation_standard_user
+    source: otrf
+    path: persistence/host/empire_schtasks_creation_standard_user.zip
+    sha256: b073a18420c90394cd2b6ad7589c78d90eba32dc155ed04b12ac824a8fc591b4
+    techniques: [T1053.005]
+    description: Empire persistence via schtasks /create
+
+  # --- Lateral movement / discovery / defense --------------------------------------
+  - id: otrf_empire_psexec_dcerpc_tcp_svcctl
+    source: otrf
+    path: lateral_movement/host/empire_psexec_dcerpc_tcp_svcctl.zip
+    sha256: 8f40e7fc86bbbf31ebd50b3ba537cf0f4378392ae3e74de84bee00aeb0de1fa5
+    techniques: [T1021.002, T1569.002]
+    description: Empire psexec module (service named "Updater" running PowerShell)
+
+  - id: otrf_cmd_discover_iexplorer_version_registry
+    source: otrf
+    path: discovery/host/cmd_discover_iexplorer_version_registry.zip
+    sha256: 3215b22ff18ea946923431a51edc83e3e0ba5d4b559ff1d6b7d27c16cc5803da
+    techniques: [T1012]
+    description: reg query of the Internet Explorer version (low-noise discovery)
+
+  - id: otrf_cmd_wevtutil_modify_security_eventlog_path
+    source: otrf
+    path: defense_evasion/host/cmd_wevtutil_modify_security_eventlog_path.zip
+    sha256: 2ea34cf2d3526e30f9fe004fc4f53f8a04d8e6885e697d77c44102567279ac67
+    techniques: [T1685]
+    description: wevtutil sl changes the Security log path (not a clear)
+
+  # --- Splunk attack_data (Atomic Red Team runs) ------------------------------------
+  - id: splunk_t1070_001_art_sysmon
+    source: splunk
+    path: T1070.001/atomic_red_team/windows-sysmon.log
+    sha256: 58a5e3465bdced284a1c0b625063c539be77beca8f9921e29238bbdc4d26de11
+    techniques: [T1685.005]
+    description: Atomic Red Team T1070.001 (wevtutil cl, Clear-EventLog) - Sysmon
+
+  - id: splunk_t1070_001_wevtutil_clear_security
+    source: splunk
+    path: T1070.001/ssa_wevtutil/clear_evt.log
+    format: windows-kv
+    sha256: 5b79963279b6bcc30c58e11dd4f6bb0e0dec5cd82e2b243ac0900998c75f3049
+    techniques: [T1685.005]
+    description: wevtutil cl Application/System/Security - Security 4688 (classic WinEventLog)
+
+  - id: splunk_t1482_art_sysmon
+    source: splunk
+    path: T1482/atomic_red_team/windows-sysmon.log
+    sha256: e84ac5f6c9b1798ae2df464b8238179736c70f42306b02863cf4d3d79cfc5e3f
+    techniques: [T1482]
+    description: Atomic Red Team T1482 (nltest /domain_trusts, dsquery) - Sysmon
+
+  - id: splunk_t1569_002_art_system
+    source: splunk
+    path: T1569.002/atomic_red_team/windows-system.log
+    format: windows-kv
+    sha256: 097f16e7d92b0c75797244543e88a9eeaad80b861a31b053feddeb68fcd1772e
+    techniques: [T1569.002]
+    description: Atomic Red Team T1569.002 (PsExec, sc create) - System log

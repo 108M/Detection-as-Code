@@ -1,0 +1,16 @@
+# PsExec Service Installation (System 7045)
+detects:
+  - dataset: otrf_cmd_psexec_lsa_secrets_dump
+    min_hits: 1  # Sysinternals PsExec -s: service PSEXESVC, %SystemRoot%\PSEXESVC.exe
+known_gaps:
+  - dataset: otrf_empire_psexec_dcerpc_tcp_svcctl
+    reason: >-
+      Empire's psexec creates service "Updater" with ImagePath
+      "%COMSPEC% /C start /b ...powershell -noP -sta -w 1 -enc ...": neither PSEXESVC nor an
+      Impacket-style random binary. Candidate rule: service ImagePath running an interpreter.
+  - dataset: splunk_t1569_002_art_system
+    reason: >-
+      Atomic Red Team "sc create ARTService binPath= cmd /c powershell ...": same class as
+      above. The other 20 service installs in this dataset (lsass.exe, dns.exe, DFS, Splunk,
+      Sysmon drivers) are legitimate and must stay at 0 hits on the Impacket regex.
+max_false_positives: 0

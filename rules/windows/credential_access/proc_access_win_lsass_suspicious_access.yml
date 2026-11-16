@@ -21,7 +21,8 @@ detection:
     TargetImage|endswith: '\lsass.exe'
     GrantedAccess:
       - '0x1010'   # PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ (Mimikatz sekurlsa)
-      - '0x1410'   # + PROCESS_QUERY_INFORMATION
+      # 0x1410 removed (2026-11-16): its only hit in the test corpus was benign
+      # PowerShell automation; every dumper in the corpus also requests 0x1010 or 0x1fffff.
       - '0x1438'
       - '0x143a'
       - '0x1fffff' # PROCESS_ALL_ACCESS
