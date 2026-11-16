@@ -8,4 +8,6 @@ detects:
     min_hits: 1  # taskmgr.exe "Create dump file", access 0x1fffff
   - dataset: otrf_psh_lsass_memory_dump_comsvcs
     min_hits: 1  # rundll32.exe (comsvcs), access 0x1fffff
+  - dataset: dac_lsass_comsvcs_minidump_noppl
+    min_hits: 1  # rundll32.exe (comsvcs MiniDump), access 0x1fffff, LSA protection off (own capture, Atomic T1003.001-2)
 max_false_positives: 0

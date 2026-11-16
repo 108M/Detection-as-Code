@@ -22,6 +22,13 @@ Defender se **desactiva** dentro de la VM (`provision/defender.ps1`). Con él ac
 
 El canal de Defender se sigue exportando en las capturas.
 
+La **protección de LSA** (LSASS como proceso protegido, PPL) también se desactiva (`provision/lsa.ps1`, que reinicia la VM). Windows 11 22H2+ la trae activa por defecto (`RunAsPPL = 2`). Con ella, `rundll32 comsvcs.dll MiniDump` recibe acceso denegado al abrir `lsass.exe`: no hay volcado ni evento 10 de Sysmon, porque Sysmon solo registra los handles que se conceden. Hay dos capturas del mismo test (T1003.001-2):
+
+- **`lsass_comsvcs_minidump`**: con PPL, el intento se bloquea y solo queda la línea de comandos.
+- **`lsass_comsvcs_minidump_noppl`**: sin PPL, el volcado se crea y aparecen el acceso a LSASS (`0x1FFFFF`) y el `.dmp`.
+
+En un equipo real con PPL, la regla de línea de comandos sigue detectando el intento.
+
 ```bash
 cd lab/vm
 vagrant up --provider hyperv   # la primera vez: descarga de la box (~11,5 GB) y aprovisionamiento
