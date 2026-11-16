@@ -1,0 +1,39 @@
+# Detection-as-Code pipeline, applied after pySigma's `ecs_windows` field mapping.
+#
+# ecs_windows maps Sigma fields to ECS but does not restrict the event type, so a
+# process_creation rule would also be evaluated against registry or network events
+# that happen to carry `process.command_line`. These transformations add the
+# conditions that pin each logsource to its events, as Elastic's own rules do.
+name: dac-ecs-windows
+priority: 100
+transformations:
+  - id: logsource_process_creation
+    type: add_condition
+    conditions:
+      event.category: process
+      event.type: start
+    rule_conditions:
+      - type: logsource
+        category: process_creation
+        product: windows
+
+  # Sysmon-specific logsources (fields live under winlog.event_data.*).
+  - id: logsource_process_access
+    type: add_condition
+    conditions:
+      winlog.channel: Microsoft-Windows-Sysmon/Operational
+      event.code: '10'
+    rule_conditions:
+      - type: logsource
+        category: process_access
+        product: windows
+
+  - id: logsource_registry_set
+    type: add_condition
+    conditions:
+      winlog.channel: Microsoft-Windows-Sysmon/Operational
+      event.code: '13'
+    rule_conditions:
+      - type: logsource
+        category: registry_set
+        product: windows

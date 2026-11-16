@@ -9,7 +9,7 @@ Pipeline de ingeniería de detección: reglas **Sigma** versionadas en git, vali
 ```mermaid
 flowchart LR
     A[Regla Sigma<br/>rules/*.yml] --> B[dac validate<br/>sintaxis + metadatos + ATT&CK]
-    B --> C[dac convert<br/>pySigma → Elastic rule]
+    B --> C[dac convert<br/>pySigma → EQL → Elastic rule]
     C --> D[dac test<br/>telemetría ataque + benigna]
     D --> E[dac coverage<br/>ATT&CK Navigator + FP rate]
     D --> F[dac deploy<br/>Kibana Detection Engine]
@@ -42,7 +42,7 @@ docker compose -f lab/docker-compose.yml up -d --wait
 dac lab setup && dac lab check
 ```
 
-Más detalles en [`lab/README.md`](lab/README.md). Convenciones de reglas: [`docs/rule-conventions.md`](docs/rule-conventions.md).
+Más detalles en [`lab/README.md`](lab/README.md). Convenciones de reglas: [`docs/rule-conventions.md`](docs/rule-conventions.md). Conversión a Elastic: [`docs/conversion.md`](docs/conversion.md).
 
 ## Licencia
 

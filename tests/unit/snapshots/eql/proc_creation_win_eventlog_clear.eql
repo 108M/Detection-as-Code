@@ -1,0 +1,1 @@
+any where (event.category:"process" and event.type:"start") and (((process.executable.caseless:"*\\wevtutil.exe" or process.pe.original_file_name:"wevtutil.exe") and (process.command_line like~ ("* cl *", "* clear-log *"))) or (process.command_line like~ ("*Clear-EventLog*", "*Remove-EventLog*", "*Limit-EventLog*", "*.ClearLog(*")))

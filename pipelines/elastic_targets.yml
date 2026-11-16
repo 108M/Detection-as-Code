@@ -1,0 +1,38 @@
+# How converted rules are scheduled in Elastic Security and which indices they read.
+# The first entry whose `logsource` keys all match the rule wins.
+
+defaults:
+  interval: 5m
+  # Look-back = interval + 1m of overlap, so late events are not missed.
+  from: now-6m
+  max_signals: 100
+  repo_url: https://github.com/108M/Detection-as-Code/blob/main
+
+severity:
+  # Sigma level -> (Elastic severity, risk score), following Elastic's prebuilt rules.
+  informational: [low, 11]
+  low: [low, 21]
+  medium: [medium, 47]
+  high: [high, 73]
+  critical: [critical, 99]
+
+targets:
+  - logsource: {product: windows, category: process_creation}
+    index: [logs-endpoint.events.process-*, logs-windows.sysmon_operational-*, winlogbeat-*]
+    tags: ["Data Source: Elastic Defend", "Data Source: Sysmon"]
+
+  - logsource: {product: windows, category: process_access}
+    index: [logs-windows.sysmon_operational-*, winlogbeat-*]
+    tags: ["Data Source: Sysmon"]
+
+  - logsource: {product: windows, category: registry_set}
+    index: [logs-windows.sysmon_operational-*, winlogbeat-*]
+    tags: ["Data Source: Sysmon"]
+
+  - logsource: {product: windows, service: system}
+    index: [logs-system.system-*, winlogbeat-*]
+    tags: ["Data Source: Windows System Event Log"]
+
+  - logsource: {product: windows}
+    index: [logs-windows.*, logs-system.*, winlogbeat-*]
+    tags: []

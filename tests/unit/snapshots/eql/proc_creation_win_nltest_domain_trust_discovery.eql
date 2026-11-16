@@ -1,0 +1,1 @@
+any where (event.category:"process" and event.type:"start") and ((process.executable.caseless:"*\\nltest.exe" or process.pe.original_file_name:"nltestrk.exe") and (process.command_line like~ ("*/domain_trusts*", "*/all_trusts*", "*/trusted_domains*", "*/dclist:*", "*/dsgetdc:*")))

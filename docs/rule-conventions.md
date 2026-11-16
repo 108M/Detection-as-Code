@@ -32,6 +32,11 @@ rules/<producto>/<táctica>/<logsource>_<producto>_<descripción>.yml
 - Cada técnica tiene que pertenecer a alguna de las tácticas etiquetadas en la regla.
 - En la v20, **Defense Evasion ya no existe**: se divide en `attack.stealth` (TA0005) y `attack.defense-impairment` (TA0112). Por ejemplo, *Clear Windows Event Logs* ha pasado de T1070.001 a **T1685.005**. Las reglas copiadas de repositorios antiguos suelen fallar por esto.
 
+## Compatibilidad con Elastic
+
+- **Regex:** nada de `^`, `$` ni flags inline (`(?i)`). La regex de Elasticsearch está anclada implícitamente y no tiene flags, así que la consulta no daría error pero nunca encontraría nada. Para no distinguir mayúsculas se usa el modificador `|re|i`. Ver [`conversion.md`](conversion.md).
+- **Logsource:** cada combinación `product`/`category`/`service` necesita un target en `pipelines/elastic_targets.yml`. Si no lo tiene, `dac convert` falla.
+
 ## Validadores de pySigma
 
 Además de lo anterior, se ejecutan los validadores core de pySigma: condiciones colgantes, wildcards en lugar de modificadores, IDs y títulos duplicados, etc. La excepción es `attacktag`, que queda sustituido por la comprobación propia con la versión fijada.

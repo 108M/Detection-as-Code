@@ -175,3 +175,12 @@ def test_repository_rules_are_valid():
     issues, total = validate(Path("rules"), attack_data=data)
     assert total > 0
     assert [str(i) for i in issues if i.severity == Severity.ERROR] == []
+
+
+@pytest.mark.parametrize("regex", ["^comsvcs.*", ".*comsvcs$", "(?i)comsvcs.*"])
+def test_regex_incompatible_with_elasticsearch(tmp_path, attack_data, regex):
+    rule = VALID_RULE.replace(
+        "    CommandLine|contains: 'comsvcs'", f"    CommandLine|re: '{regex}'"
+    )
+    issues, _ = _run(tmp_path, rule, attack_data)
+    assert "es-regex" in _codes(issues)

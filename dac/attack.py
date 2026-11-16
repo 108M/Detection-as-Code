@@ -16,6 +16,7 @@ STIX_URL = (
     "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/"
     "{domain}/{domain}-{version}.json"
 )
+INDEX_SCHEMA = "v2"  # bump when the cached index layout changes
 CACHE_DIR = Path(os.environ.get("DAC_CACHE_DIR", ".cache")) / "attack"
 
 
@@ -30,11 +31,21 @@ class Technique:
     revoked_by: str | None = None  # replacement technique ID, if revoked
 
 
+@dataclass(frozen=True)
+class Tactic:
+    id: str
+    name: str
+    shortname: str
+    domain: str
+
+
 @dataclass
 class AttackData:
     version: str
     techniques: dict[str, Technique] = field(default_factory=dict)  # "T1003.001" -> Technique
     tactics: dict[str, str] = field(default_factory=dict)  # "credential-access" -> "TA0006"
+    # (domain, shortname) -> Tactic. Enterprise and ICS reuse shortnames ("execution").
+    tactic_info: dict[tuple[str, str], Tactic] = field(default_factory=dict)
     other_ids: set[str] = field(default_factory=set)  # groups (G), software (S), campaigns (C)
 
 
@@ -48,7 +59,7 @@ def _ext_id(obj: dict) -> str | None:
 
 
 def _index_path(domain: str, version: str) -> Path:
-    return CACHE_DIR / f"{domain}-{version}.index.json"
+    return CACHE_DIR / f"{domain}-{version}.{INDEX_SCHEMA}.index.json"
 
 
 def _build_index(domain: str, version: str) -> dict:
@@ -59,7 +70,7 @@ def _build_index(domain: str, version: str) -> dict:
     bundle = resp.json()
 
     techniques: dict[str, dict] = {}
-    tactics: dict[str, str] = {}
+    tactics: dict[str, dict] = {}
     other: list[str] = []
     stix_to_ext = {o["id"]: _ext_id(o) for o in bundle["objects"] if _ext_id(o)}
     revoked_by = {
@@ -89,7 +100,7 @@ def _build_index(domain: str, version: str) -> dict:
             if current is None or (current["revoked"] or current["deprecated"]):
                 techniques[ext] = entry
         elif kind == "x-mitre-tactic":
-            tactics[obj["x_mitre_shortname"]] = ext
+            tactics[obj["x_mitre_shortname"]] = {"id": ext, "name": obj["name"]}
         elif kind in ("intrusion-set", "malware", "tool", "campaign"):
             other.append(ext)
 
@@ -101,6 +112,7 @@ def _build_index(domain: str, version: str) -> dict:
 
 @cache
 def load(version: str = ATTACK_VERSION) -> AttackData:
+    """Load (downloading once) the Enterprise and ICS knowledge bases."""
     data = AttackData(version=version)
     for domain in DOMAINS:
         path = _index_path(domain, version)
@@ -118,6 +130,8 @@ def load(version: str = ATTACK_VERSION) -> AttackData:
                 revoked=t["revoked"],
                 revoked_by=t.get("revoked_by"),
             )
-        data.tactics.update(index["tactics"])
+        for short, t in index["tactics"].items():
+            data.tactic_info[(domain, short)] = Tactic(t["id"], t["name"], short, domain)
+            data.tactics.setdefault(short, t["id"])  # enterprise (loaded first) wins
         data.other_ids.update(index["other"])
     return data
